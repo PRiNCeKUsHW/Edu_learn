@@ -1,0 +1,13 @@
+# Django templates — Prettier does not understand {% %} / {{ }} tags and will
+# wrap them across lines, which breaks them (Django's lexer requires a tag to
+# open and close on the same line).
+templates/
+core/templates/
+admin_panel/templates/
+
+# Not ours / generated
+venv/
+staticfiles/
+media/
+static/vendor/
+db.sqlite3

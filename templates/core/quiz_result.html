@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Quiz result — EduLearn{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="padding-top: var(--space-6); padding-bottom: var(--space-8)">
+
+  <!-- ── Score ── -->
+  <div class="panel-lg reveal reveal-1" style="text-align: center; margin-bottom: var(--space-6)">
+    <span class="t-eyebrow">{{ attempt.quiz.title }}</span>
+
+    <div class="d-flex justify-content-center" style="margin: var(--space-5) 0">
+      <span class="ring ring-lg {% if attempt.passed %}ring-complete{% endif %}" style="--pct: {{ attempt.percentage }}" role="img" aria-label="Scored {{ attempt.percentage }} percent">
+        <span class="ring-label">{{ attempt.percentage }}%</span>
+      </span>
+    </div>
+
+    <h1 class="t-h2" style="margin-bottom: 0.4rem">
+      {% if attempt.passed %}You passed{% else %}Not quite yet{% endif %}
+    </h1>
+
+    <p class="t-meta" style="margin-bottom: var(--space-4)">
+      {{ attempt.score }} of {{ attempt.total }} correct ·
+      {% if attempt.passed %}pass mark was {{ attempt.quiz.pass_percentage }}%{% else %}you need {{ attempt.quiz.pass_percentage }}% to pass{% endif %}
+    </p>
+
+    <span class="chip {% if attempt.passed %}chip-success{% else %}chip-warn{% endif %}">
+      {% if attempt.passed %}<i class="bi bi-check-circle-fill" aria-hidden="true"></i>Passed{% else %}<i class="bi bi-arrow-repeat" aria-hidden="true"></i>Try again{% endif %}
+    </span>
+  </div>
+
+  <!-- ── Actions ── -->
+  <div class="d-flex gap-2 flex-wrap" style="margin-bottom: var(--space-8)">
+    <a class="btn btn-accent flex-grow-1" href="{% url 'quiz' attempt.quiz.chapter.class_level.subject.slug attempt.quiz.chapter.class_level.level attempt.quiz.chapter.slug %}">
+      <i class="bi bi-arrow-repeat" aria-hidden="true"></i>Retry quiz
+    </a>
+    <a class="btn btn-quiet flex-grow-1" href="{% url 'chapter_list' attempt.quiz.chapter.class_level.subject.slug attempt.quiz.chapter.class_level.level %}">
+      <i class="bi bi-list-ul" aria-hidden="true"></i>Back to chapters
+    </a>
+  </div>
+
+  <!-- ── Review ── -->
+  <h2 class="t-h2" style="font-size: 1.125rem; margin-bottom: var(--space-4)">Answer review</h2>
+
+  {% for result in results %}
+  <div class="panel {% if result.is_correct %}review-correct{% else %}review-wrong{% endif %}" style="margin-bottom: var(--space-3)">
+
+    <div class="d-flex gap-3" style="margin-bottom: var(--space-3)">
+      <span class="row-index flex-shrink-0" style="margin-top: 0.1rem">{{ forloop.counter }}</span>
+      <span style="font-family: var(--font-display); font-weight: 600; font-size: 0.9375rem; line-height: 1.45">{{ result.question.text }}</span>
+    </div>
+
+    <!-- Status carries an icon and a word, never colour alone -->
+    <div class="d-flex align-items-center gap-2" style="margin-bottom: var(--space-2)">
+      {% if result.is_correct %}
+      <span class="chip chip-success"><i class="bi bi-check-lg" aria-hidden="true"></i>Correct</span>
+      {% elif result.selected %}
+      <span class="chip chip-danger"><i class="bi bi-x-lg" aria-hidden="true"></i>Incorrect</span>
+      {% else %}
+      <span class="chip chip-warn"><i class="bi bi-dash-lg" aria-hidden="true"></i>Not answered</span>
+      {% endif %}
+    </div>
+
+    {% if result.selected %}
+    <p class="t-meta" style="margin-bottom: 0.25rem; font-size: 0.875rem">
+      Your answer: <span style="color: var(--text); font-weight: 600">{{ result.selected.text }}</span>
+    </p>
+    {% endif %}
+
+    {% if not result.is_correct and result.correct %}
+    <p class="t-meta" style="margin-bottom: 0.25rem; font-size: 0.875rem">
+      Correct answer: <span class="text-success-ink" style="font-weight: 600">{{ result.correct.text }}</span>
+    </p>
+    {% endif %}
+
+    {% if result.question.explanation %}
+    <div class="surface-subtle" style="margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-sm); font-size: 0.875rem">
+      <span class="t-eyebrow d-block" style="margin-bottom: 0.25rem">Why</span>
+      {{ result.question.explanation }}
+    </div>
+    {% endif %}
+
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}

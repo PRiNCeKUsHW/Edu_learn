@@ -1,0 +1,29 @@
+{% comment %}
+Lightweight pager for student-facing paginated sections. Expects `page_obj`
+(a Paginator Page), `param_name` (the querystring key this section pages on,
+e.g. "spage") and `pager_query` (the current querystring minus that key,
+already prefixed with '&') so multiple independently-paginated sections on
+one page — see search_results.html — can each page without resetting the
+others. Renders nothing when there's only one page.
+{% endcomment %}
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="d-flex align-items-center justify-content-between gap-2" style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border)" aria-label="Pagination">
+  {% if page_obj.has_previous %}
+  <a class="btn btn-quiet btn-sm-q" href="?{{ param_name }}={{ page_obj.previous_page_number }}{{ pager_query }}" rel="prev">
+    <i class="bi bi-chevron-left" aria-hidden="true"></i>Previous
+  </a>
+  {% else %}
+  <span></span>
+  {% endif %}
+
+  <span class="t-meta">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+  {% if page_obj.has_next %}
+  <a class="btn btn-quiet btn-sm-q" href="?{{ param_name }}={{ page_obj.next_page_number }}{{ pager_query }}" rel="next">
+    Next<i class="bi bi-chevron-right" aria-hidden="true"></i>
+  </a>
+  {% else %}
+  <span></span>
+  {% endif %}
+</nav>
+{% endif %}

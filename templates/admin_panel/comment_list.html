@@ -1,0 +1,51 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Comments{% endblock %}
+{% block topbar_title %}Comments & Doubts{% endblock %}
+{% block topbar_sub %}Moderate student comments{% endblock %}
+
+{% block content %}
+<div class="ap-card">
+  <div class="ap-table-wrap">
+  <table class="ap-table">
+    <thead>
+      <tr><th>User</th><th>Comment</th><th>Lesson</th><th>Type</th><th>Posted</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for comment in comments %}
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--surface-2);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;">
+              {{ comment.user.first_name|default:comment.user.username|slice:":1"|upper }}
+            </div>
+            <span style="font-size:.8rem;font-weight:600;">{{ comment.user.username }}</span>
+          </div>
+        </td>
+        <td style="max-width:300px;font-size:.85rem;">{{ comment.body|truncatewords:15 }}</td>
+        <td style="font-size:.8rem;color:var(--ink-3);">{{ comment.lesson.title|truncatewords:5 }}</td>
+        <td>
+          {% if comment.is_reply %}
+            <span class="ap-badge ap-badge-yellow"><i class="bi bi-reply"></i> Reply</span>
+          {% else %}
+            <span class="ap-badge ap-badge-blue"><i class="bi bi-chat"></i> Comment</span>
+          {% endif %}
+        </td>
+        <td style="font-size:.78rem;color:var(--ink-3);">{{ comment.created_at|timesince }} ago</td>
+        <td>
+          <form method="post" action="{% url 'ap:comment_delete' comment.pk %}" onsubmit="return confirm('Delete this comment?')">
+            {% csrf_token %}
+            <button type="submit" class="btn-ap btn-ap-danger btn-ap-sm">
+              <i class="bi bi-trash3"></i> Delete
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6"><div class="ap-empty"><i class="bi bi-chat-square-x"></i><p>No comments yet.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% include "admin_panel/_pager.html" %}
+</div>
+{% endblock %}

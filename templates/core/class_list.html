@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}{{ subject.name }} — EduLearn{% endblock %}
+
+{% block content %}
+<div class="container-page" style="padding-top: var(--space-6); padding-bottom: var(--space-8)">
+
+  <ol class="crumbs">
+    <li><a href="{% url 'dashboard' %}">Home</a></li>
+    <li class="is-current">{{ subject.name }}</li>
+  </ol>
+
+  <!-- ── Header ── -->
+  <header class="reveal reveal-1" style="margin-bottom: var(--space-7)">
+    <div class="d-flex align-items-center gap-2" style="margin-bottom: 0.4rem">
+      <i class="bi {{ subject.icon_class }} text-accent" style="font-size: 1.25rem" aria-hidden="true"></i>
+      <span class="t-eyebrow">Subject</span>
+    </div>
+    <h1 class="t-h1" style="margin-bottom: 0.4rem">{{ subject.name }}</h1>
+    {% if subject.description %}
+    <p class="t-lead" style="max-width: 60ch; margin-bottom: 0">{{ subject.description }}</p>
+    {% endif %}
+  </header>
+
+  <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Select your class</div>
+
+  <div class="row g-3">
+    {% for item in class_data %}
+    <div class="col-sm-6 col-lg-4">
+      <a class="card-link h-100 reveal reveal-2" style="padding: var(--space-5)" href="{% url 'chapter_list' subject.slug item.class_level.level %}">
+
+        <span class="d-flex align-items-start justify-content-between gap-3">
+          <span>
+            <span class="d-block" style="font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; letter-spacing: -0.02em">
+              Class {{ item.class_level.level }}
+            </span>
+            <span class="t-meta d-block" style="margin-top: 0.15rem">
+              {{ item.chapter_count }} chapter{{ item.chapter_count|pluralize }} · {{ item.lesson_count }} lesson{{ item.lesson_count|pluralize }}
+            </span>
+          </span>
+
+          {% if item.lesson_count %}
+          <span class="ring {% if item.percent == 100 %}ring-complete{% endif %}" style="--pct: {{ item.percent }}; --ring-size: 44px; --ring-thick: 4px" role="img" aria-label="{{ item.percent }} percent complete">
+            <span class="ring-label" style="font-size: 0.625rem">{{ item.percent }}%</span>
+          </span>
+          {% endif %}
+        </span>
+
+        {% if item.class_level.description %}
+        <span class="t-meta d-block truncate-2" style="margin-top: var(--space-3)">{{ item.class_level.description }}</span>
+        {% endif %}
+
+        {% if item.lesson_count %}
+        <span class="d-block" style="margin-top: var(--space-4)">
+          <span class="meter"><span class="meter-fill {% if item.percent == 100 %}is-success{% endif %}" data-pct="{{ item.percent }}"></span></span>
+          <span class="t-meta d-block" style="margin-top: 0.4rem">{{ item.watched_count }} of {{ item.lesson_count }} watched</span>
+        </span>
+        {% else %}
+        <span class="t-meta d-block" style="margin-top: var(--space-4)">No lessons yet</span>
+        {% endif %}
+
+      </a>
+    </div>
+
+    {% empty %}
+    <div class="col-12">
+      <div class="empty">
+        <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
+        <div style="color: var(--text); font-weight: 600">Nothing here yet</div>
+        <div class="t-meta" style="margin-top: 0.25rem">No class levels have been added for {{ subject.name }}.</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+{% block topbar_sub %}Overview of your platform{% endblock %}
+
+{% block content %}
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  {% with cards=stats %}
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;color:#3b82f6;"><i class="bi bi-journal-bookmark"></i></div>
+      <div>
+        <div class="stat-val">{{ stats.subjects }}</div>
+        <div class="stat-label">Subjects</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;color:#22c55e;"><i class="bi bi-collection"></i></div>
+      <div>
+        <div class="stat-val">{{ stats.chapters }}</div>
+        <div class="stat-label">Chapters</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fdf4ff;color:#a855f7;"><i class="bi bi-play-circle"></i></div>
+      <div>
+        <div class="stat-val">{{ stats.lessons }}</div>
+        <div class="stat-label">Lessons</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fffbeb;color:#f59e0b;"><i class="bi bi-people"></i></div>
+      <div>
+        <div class="stat-val">{{ stats.users }}</div>
+        <div class="stat-label">Users</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef2f2;color:#ef4444;"><i class="bi bi-chat-dots"></i></div>
+      <div>
+        <div class="stat-val">{{ stats.comments }}</div>
+        <div class="stat-label">Comments</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;color:#22c55e;"><i class="bi bi-patch-question"></i></div>
+      <div>
+        <div class="stat-val">{{ stats.quizzes }}</div>
+        <div class="stat-label">Quizzes</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;color:#3b82f6;"><i class="bi bi-layers"></i></div>
+      <div>
+        <div class="stat-val">{{ stats.classes }}</div>
+        <div class="stat-label">Class Levels</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fdf4ff;color:#a855f7;"><i class="bi bi-trophy"></i></div>
+      <div>
+        <div class="stat-val">{{ stats.attempts }}</div>
+        <div class="stat-label">Quiz Attempts</div>
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+</div>
+
+<div class="row g-4">
+
+  <!-- Quick Actions -->
+  <div class="col-lg-4">
+    <div class="ap-card h-100">
+      <div class="ap-card-header">
+        <i class="bi bi-lightning-fill" style="color:var(--accent);"></i>
+        <h2 class="ap-card-title">Quick Actions</h2>
+      </div>
+      <div class="ap-card-body d-flex flex-column gap-2">
+        <a href="{% url 'ap:subject_add' %}" class="btn-ap btn-ap-outline w-100">
+          <i class="bi bi-plus-circle"></i> Add Subject
+        </a>
+        <a href="{% url 'ap:classlevel_add' %}" class="btn-ap btn-ap-outline w-100">
+          <i class="bi bi-plus-circle"></i> Add Class Level
+        </a>
+        <a href="{% url 'ap:chapter_add' %}" class="btn-ap btn-ap-outline w-100">
+          <i class="bi bi-plus-circle"></i> Add Chapter
+        </a>
+        <a href="{% url 'ap:lesson_add' %}" class="btn-ap btn-ap-primary w-100">
+          <i class="bi bi-plus-circle"></i> Add Lesson
+        </a>
+        <a href="{% url 'ap:quiz_add' %}" class="btn-ap btn-ap-outline w-100">
+          <i class="bi bi-plus-circle"></i> Create Quiz
+        </a>
+        <a href="{% url 'ap:resource_add' %}" class="btn-ap btn-ap-outline w-100">
+          <i class="bi bi-upload"></i> Upload PDF Resource
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Users -->
+  <div class="col-lg-8">
+    <div class="ap-card">
+      <div class="ap-card-header">
+        <i class="bi bi-person-plus" style="color:var(--accent);"></i>
+        <h2 class="ap-card-title">Recent Registrations</h2>
+        <a href="{% url 'ap:user_list' %}" class="btn-ap btn-ap-outline btn-ap-sm ms-auto">View All</a>
+      </div>
+      <table class="ap-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>Joined</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in recent_users %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div style="width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;">
+                  {{ u.first_name|default:u.username|slice:":1"|upper }}
+                </div>
+                <span class="fw-semibold">{{ u.get_full_name|default:u.username }}</span>
+              </div>
+            </td>
+            <td style="color:var(--ink-3);">{{ u.email }}</td>
+            <td style="color:var(--ink-3);font-size:.8rem;">{{ u.date_joined|date:"d M Y" }}</td>
+            <td>
+              {% if u.is_active %}
+                <span class="ap-badge ap-badge-green"><i class="bi bi-circle-fill" style="font-size:.5rem;"></i> Active</span>
+              {% else %}
+                <span class="ap-badge ap-badge-red">Inactive</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center" style="color:var(--ink-3);padding:24px;">No users yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Comments -->
+  <div class="col-lg-6">
+    <div class="ap-card">
+      <div class="ap-card-header">
+        <i class="bi bi-chat-dots" style="color:var(--accent);"></i>
+        <h2 class="ap-card-title">Recent Comments</h2>
+        <a href="{% url 'ap:comment_list' %}" class="btn-ap btn-ap-outline btn-ap-sm ms-auto">View All</a>
+      </div>
+      <div class="ap-card-body d-flex flex-column gap-3">
+        {% for comment in recent_comments %}
+        <div style="display:flex;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--surface-2);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;">
+            {{ comment.user.first_name|default:comment.user.username|slice:":1"|upper }}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.8rem;font-weight:600;">{{ comment.user.username }} <span style="color:var(--ink-3);font-weight:400;">on</span> {{ comment.lesson.title|truncatewords:5 }}</div>
+            <div style="font-size:.8rem;color:var(--ink-3);">{{ comment.body|truncatewords:12 }}</div>
+          </div>
+          <div style="font-size:.72rem;color:var(--ink-3);flex-shrink:0;">{{ comment.created_at|timesince }} ago</div>
+        </div>
+        {% empty %}
+        <div class="ap-empty" style="padding:24px;"><p>No comments yet.</p></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Quiz Attempts -->
+  <div class="col-lg-6">
+    <div class="ap-card">
+      <div class="ap-card-header">
+        <i class="bi bi-trophy" style="color:var(--accent);"></i>
+        <h2 class="ap-card-title">Recent Quiz Attempts</h2>
+      </div>
+      <table class="ap-table">
+        <thead>
+          <tr><th>User</th><th>Quiz</th><th>Score</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+          {% for attempt in recent_attempts %}
+          <tr>
+            <td style="font-size:.8rem;">{{ attempt.user.username }}</td>
+            <td style="font-size:.8rem;color:var(--ink-3);">{{ attempt.quiz.title|truncatewords:4 }}</td>
+            <td style="font-family:'DM Mono',monospace;font-size:.8rem;">{{ attempt.score }}/{{ attempt.total }}</td>
+            <td>
+              {% if attempt.passed %}
+                <span class="ap-badge ap-badge-green">Passed</span>
+              {% else %}
+                <span class="ap-badge ap-badge-red">Failed</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center" style="color:var(--ink-3);padding:24px;">No attempts yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

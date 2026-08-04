@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% block title %}{{ lesson.title }} — EduLearn{% endblock %}
+
+{% block content %}
+<div class="container-page" style="padding-top: var(--space-5); padding-bottom: var(--space-8)">
+  <div class="row g-4">
+
+    <!-- ════════════════ MAIN ════════════════ -->
+    <div class="col-lg-8">
+
+      <ol class="crumbs">
+        <li><a href="{% url 'dashboard' %}">Home</a></li>
+        <li><a href="{% url 'class_list' subject.slug %}">{{ subject.name }}</a></li>
+        <li><a href="{% url 'chapter_list' subject.slug class_obj.level %}">Class {{ class_obj.level }}</a></li>
+        <li class="is-current truncate-1" style="max-width: 22ch">{{ chapter.title }}</li>
+      </ol>
+
+      <!-- ── Player ── -->
+      <div class="video-wrapper" style="margin-bottom: var(--space-5)">
+        <iframe src="{{ lesson.youtube_embed_url }}" title="{{ lesson.title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      </div>
+
+      <!-- ── Title + mark watched ── -->
+      <div class="d-flex align-items-start justify-content-between gap-3" style="margin-bottom: var(--space-4)">
+        <div style="min-width: 0">
+          <h1 class="t-h2" style="margin-bottom: 0.35rem">{{ lesson.title }}</h1>
+          <div class="t-meta d-flex align-items-center gap-2 flex-wrap">
+            <span><i class="bi bi-collection-play" aria-hidden="true"></i> {{ chapter.title }}</span>
+            {% if lesson.duration_minutes %}
+            <span aria-hidden="true">·</span>
+            <span><i class="bi bi-clock" aria-hidden="true"></i> {{ lesson.duration_minutes }} min</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <button id="watchBtn" type="button" data-lesson-id="{{ lesson.id }}" class="btn {% if progress.watched %}btn-soft{% else %}btn-quiet{% endif %} flex-shrink-0" aria-pressed="{% if progress.watched %}true{% else %}false{% endif %}">
+          <i id="watchIcon" class="bi {% if progress.watched %}bi-check-circle-fill{% else %}bi-circle{% endif %}" aria-hidden="true"></i>
+          <span id="watchText">{% if progress.watched %}Watched{% else %}Mark watched{% endif %}</span>
+        </button>
+      </div>
+
+      {% if lesson.description %}
+      <p class="text-secondary-ink" style="margin-bottom: var(--space-5)">{{ lesson.description }}</p>
+      {% endif %}
+
+      <!-- ── Prev / next ── -->
+      <nav class="d-flex justify-content-between gap-2" style="margin-bottom: var(--space-8)" aria-label="Lesson navigation">
+        {% if prev_lesson %}
+        <a class="btn btn-quiet" style="max-width: 48%" href="{% url 'lesson_detail' subject.slug class_obj.level chapter.slug prev_lesson.slug %}">
+          <i class="bi bi-arrow-left flex-shrink-0" aria-hidden="true"></i>
+          <span class="truncate-1">{{ prev_lesson.title }}</span>
+        </a>
+        {% else %}
+        <span></span>
+        {% endif %}
+
+        {% if next_lesson %}
+        <a class="btn btn-accent" style="max-width: 48%" href="{% url 'lesson_detail' subject.slug class_obj.level chapter.slug next_lesson.slug %}">
+          <span class="truncate-1">{{ next_lesson.title }}</span>
+          <i class="bi bi-arrow-right flex-shrink-0" aria-hidden="true"></i>
+        </a>
+        {% endif %}
+      </nav>
+
+      <!-- ════ COMMENTS ════ -->
+      <section aria-labelledby="commentsHeading">
+        <h2 id="commentsHeading" class="t-h2" style="font-size: 1.125rem; margin-bottom: var(--space-4)">
+          Doubts &amp; comments
+          <span class="chip" style="margin-left: 0.35rem">{{ comments|length }}</span>
+        </h2>
+
+        <!-- Post -->
+        <form method="post" style="margin-bottom: var(--space-6)">
+          {% csrf_token %}
+          <div class="d-flex gap-3">
+            <span class="avatar" aria-hidden="true">{{ user.first_name|default:user.username|slice:":1"|upper }}</span>
+            <div class="flex-grow-1">
+              <label class="sr-only" for="newComment">Your comment</label>
+              <textarea class="input" id="newComment" name="comment_body" rows="3" placeholder="Ask a doubt or leave a comment…" required></textarea>
+              <div class="d-flex justify-content-end" style="margin-top: var(--space-2)">
+                <button class="btn btn-accent btn-sm-q" type="submit">
+                  <i class="bi bi-send" aria-hidden="true"></i>Post
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <!-- Threads -->
+        {% for comment in comments %}
+        <article class="d-flex gap-3" style="margin-bottom: var(--space-5)">
+          <span class="avatar" aria-hidden="true">{{ comment.user.first_name|default:comment.user.username|slice:":1"|upper }}</span>
+
+          <div class="flex-grow-1" style="min-width: 0">
+            <div class="panel" style="padding: var(--space-3) var(--space-4); background: var(--bg-subtle)">
+              <div class="d-flex align-items-baseline gap-2 flex-wrap" style="margin-bottom: 0.2rem">
+                <span style="font-weight: 600; font-size: 0.875rem">{{ comment.user.get_full_name|default:comment.user.username }}</span>
+                <span class="t-meta">{{ comment.created_at|timesince }} ago</span>
+              </div>
+              <p style="margin-bottom: 0; font-size: 0.9375rem">{{ comment.body }}</p>
+            </div>
+
+            <!-- Replies -->
+            {% for reply in comment.replies.all %}
+            <div class="d-flex gap-2" style="margin-top: var(--space-3); margin-left: var(--space-4)">
+              <span class="avatar avatar-sm" aria-hidden="true">{{ reply.user.first_name|default:reply.user.username|slice:":1"|upper }}</span>
+              <div class="panel flex-grow-1" style="padding: var(--space-2) var(--space-3); min-width: 0">
+                <div class="d-flex align-items-baseline gap-2 flex-wrap" style="margin-bottom: 0.15rem">
+                  <span style="font-weight: 600; font-size: 0.8125rem">{{ reply.user.get_full_name|default:reply.user.username }}</span>
+                  <span class="t-meta">{{ reply.created_at|timesince }} ago</span>
+                </div>
+                <p style="margin-bottom: 0; font-size: 0.875rem">{{ reply.body }}</p>
+              </div>
+            </div>
+            {% endfor %}
+
+            <!-- Reply form -->
+            <form method="post" style="margin-top: var(--space-3); margin-left: var(--space-4)">
+              {% csrf_token %}
+              <input type="hidden" name="parent_id" value="{{ comment.id }}" />
+              <div class="d-flex gap-2">
+                <label class="sr-only" for="reply{{ comment.id }}">Reply to {{ comment.user.get_full_name|default:comment.user.username }}</label>
+                <input class="input" id="reply{{ comment.id }}" type="text" name="comment_body" placeholder="Write a reply…" required style="min-height: 38px; font-size: 0.875rem" />
+                <button class="btn btn-quiet btn-sm-q flex-shrink-0" type="submit">Reply</button>
+              </div>
+            </form>
+          </div>
+        </article>
+
+        {% empty %}
+        <div class="empty">
+          <i class="bi bi-chat-square-dots empty-icon" aria-hidden="true"></i>
+          <div style="color: var(--text); font-weight: 600">No comments yet</div>
+          <div class="t-meta" style="margin-top: 0.25rem">Be the first to ask a doubt.</div>
+        </div>
+        {% endfor %}
+      </section>
+
+    </div>
+
+    <!-- ════════════════ SIDEBAR ════════════════ -->
+    <div class="col-lg-4">
+
+      {% if quiz %}
+      <div class="panel" style="margin-bottom: var(--space-4)">
+        <div class="t-eyebrow" style="margin-bottom: 0.4rem">Chapter quiz</div>
+        <div style="font-family: var(--font-display); font-weight: 600; margin-bottom: 0.2rem">{{ quiz.title }}</div>
+        <p class="t-meta" style="margin-bottom: var(--space-4)">
+          {{ quiz.total_questions }} question{{ quiz.total_questions|pluralize }} · pass mark {{ quiz.pass_percentage }}%
+        </p>
+        <a class="btn btn-accent btn-block-q" href="{% url 'quiz' subject.slug class_obj.level chapter.slug %}">
+          Take quiz<i class="bi bi-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+      {% endif %}
+
+      {% if resources %}
+      <div class="panel" style="margin-bottom: var(--space-4)">
+        <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Notes &amp; resources</div>
+        {% for resource in resources %}
+        <a class="row-link" style="padding: var(--space-2) 0; min-height: 40px" href="{{ resource.file.url }}" target="_blank" rel="noopener">
+          <i class="bi bi-file-earmark-arrow-down text-accent flex-shrink-0" aria-hidden="true"></i>
+          <span class="row-title flex-grow-1 truncate-1">{{ resource.title }}</span>
+          <i class="bi bi-box-arrow-up-right t-meta flex-shrink-0" aria-hidden="true"></i>
+          <span class="sr-only">(opens in a new tab)</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Lesson list -->
+      <div class="panel">
+        <div class="t-eyebrow" style="margin-bottom: var(--space-3)">In this chapter</div>
+        <nav aria-label="Chapter lessons">
+          {% for l in chapter.lessons.all %}
+          <a class="row-link {% if l.id == lesson.id %}is-current{% endif %}" style="padding: var(--space-2) var(--space-3); min-height: 44px" href="{% url 'lesson_detail' subject.slug class_obj.level chapter.slug l.slug %}" {% if l.id == lesson.id %}aria-current="page"{% endif %}>
+            <span class="row-index flex-shrink-0">{{ forloop.counter }}</span>
+            <span class="row-title flex-grow-1">{{ l.title }}</span>
+            {% if l.id == lesson.id %}
+            <i class="bi bi-play-fill text-accent flex-shrink-0" aria-hidden="true"></i>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </nav>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var btn = document.getElementById("watchBtn");
+    if (!btn) return;
+    var icon = document.getElementById("watchIcon");
+    var text = document.getElementById("watchText");
+    var csrfToken = "{{ csrf_token }}";
+
+    btn.addEventListener("click", function () {
+      btn.disabled = true;
+      fetch("{% url 'mark_watched' lesson.id %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken },
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error("Request failed: " + r.status);
+          return r.json();
+        })
+        .then(function (data) {
+          btn.classList.toggle("btn-soft", data.watched);
+          btn.classList.toggle("btn-quiet", !data.watched);
+          btn.setAttribute("aria-pressed", data.watched ? "true" : "false");
+          icon.className = "bi " + (data.watched ? "bi-check-circle-fill" : "bi-circle");
+          text.textContent = data.watched ? "Watched" : "Mark watched";
+        })
+        .catch(function (err) {
+          console.error(err);
+          text.textContent = "Try again";
+        })
+        .finally(function () {
+          btn.disabled = false;
+        });
+    });
+  })();
+</script>
+{% endblock %}

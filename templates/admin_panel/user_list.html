@@ -1,0 +1,75 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Users{% endblock %}
+{% block topbar_title %}Users{% endblock %}
+{% block topbar_sub %}Manage registered students{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <form method="get" class="d-flex gap-2">
+    <div class="input-group" style="width:260px;">
+      <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search users…">
+      <button type="submit" class="btn-ap btn-ap-outline" style="border-radius:0 8px 8px 0;border-left:0;">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </form>
+  <span class="ap-badge ap-badge-gray" style="font-size:.85rem;padding:6px 12px;">{{ page_obj.paginator.count }} total</span>
+</div>
+
+<div class="ap-card">
+  <div class="ap-table-wrap">
+  <table class="ap-table">
+    <thead>
+      <tr><th>User</th><th>Email</th><th>Joined</th><th>Progress</th><th>Quizzes</th><th>Staff</th><th>Active</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div style="width:34px;height:34px;border-radius:50%;background:{% if u.is_staff %}var(--accent){% else %}var(--surface-2){% endif %};color:{% if u.is_staff %}#fff{% else %}var(--ink-2){% endif %};display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;">
+              {{ u.first_name|default:u.username|slice:":1"|upper }}
+            </div>
+            <div>
+              <div class="fw-semibold" style="font-size:.875rem;">{{ u.get_full_name|default:u.username }}</div>
+              <div style="font-size:.72rem;color:var(--ink-3);">@{{ u.username }}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size:.8rem;color:var(--ink-3);">{{ u.email|default:"—" }}</td>
+        <td style="font-size:.8rem;color:var(--ink-3);">{{ u.date_joined|date:"d M Y" }}</td>
+        <td><span class="ap-badge ap-badge-purple">{{ u.progress_count }} watched</span></td>
+        <td><span class="ap-badge ap-badge-blue">{{ u.attempt_count }} attempts</span></td>
+        <td>
+          <form method="post" action="{% url 'ap:user_toggle_staff' u.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="ap-badge {% if u.is_staff %}ap-badge-green{% else %}ap-badge-gray{% endif %}" style="border:none;cursor:pointer;">
+              {% if u.is_staff %}<i class="bi bi-shield-check"></i> Yes{% else %}No{% endif %}
+            </button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="{% url 'ap:user_toggle_active' u.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="ap-badge {% if u.is_active %}ap-badge-green{% else %}ap-badge-red{% endif %}" style="border:none;cursor:pointer;">
+              {% if u.is_active %}<i class="bi bi-circle-fill" style="font-size:.4rem;"></i> Active{% else %}Inactive{% endif %}
+            </button>
+          </form>
+        </td>
+        <td>
+          {% if u != request.user %}
+            <span style="font-size:.75rem;color:var(--ink-3);">Use toggles</span>
+          {% else %}
+            <span class="ap-badge ap-badge-yellow">You</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8"><div class="ap-empty"><i class="bi bi-people"></i><p>No users found.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% include "admin_panel/_pager.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}{{ quiz.title }} — EduLearn{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="padding-top: var(--space-6); padding-bottom: var(--space-8)">
+
+  <ol class="crumbs">
+    <li><a href="{% url 'dashboard' %}">Home</a></li>
+    <li class="is-current truncate-1" style="max-width: 26ch">{{ chapter.title }}</li>
+  </ol>
+
+  <!-- ── Header ── -->
+  <header class="reveal reveal-1" style="margin-bottom: var(--space-6)">
+    <span class="t-eyebrow">Chapter quiz</span>
+    <h1 class="t-h1" style="margin-top: 0.3rem; margin-bottom: 0.4rem">{{ quiz.title }}</h1>
+    {% if quiz.description %}
+    <p class="t-lead" style="margin-bottom: var(--space-4)">{{ quiz.description }}</p>
+    {% endif %}
+    <div class="d-flex gap-2 flex-wrap">
+      <span class="chip"><i class="bi bi-list-ol" aria-hidden="true"></i>{{ questions|length }} question{{ questions|length|pluralize }}</span>
+      <span class="chip"><i class="bi bi-trophy" aria-hidden="true"></i>Pass mark {{ quiz.pass_percentage }}%</span>
+    </div>
+  </header>
+
+  <hr class="rule" />
+
+  <!-- ── Questions ── -->
+  <form method="post" id="quizForm">
+    {% csrf_token %}
+
+    {% for question in questions %}
+    <fieldset style="border: 0; padding: 0; margin: 0 0 var(--space-7)">
+      <legend style="all: unset; display: block; margin-bottom: var(--space-3)">
+        <span class="d-flex gap-3">
+          <span class="row-index flex-shrink-0" style="margin-top: 0.15rem">{{ forloop.counter }}</span>
+          <span style="font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem; line-height: 1.45">{{ question.text }}</span>
+        </span>
+      </legend>
+
+      {% for choice in question.choices.all %}
+      <label class="choice" for="choice_{{ choice.id }}">
+        <input type="radio" name="question_{{ question.id }}" id="choice_{{ choice.id }}" value="{{ choice.id }}" />
+        <span class="choice-text">{{ choice.text }}</span>
+      </label>
+      {% endfor %}
+    </fieldset>
+    {% endfor %}
+
+    {% if questions %}
+    <button class="btn btn-accent btn-lg-q btn-block-q" type="submit">
+      <i class="bi bi-check2-square" aria-hidden="true"></i>Submit quiz
+    </button>
+    <p class="t-meta" style="text-align: center; margin-top: var(--space-3)">
+      You'll see which answers were right straight after submitting.
+    </p>
+    {% else %}
+    <div class="empty">
+      <i class="bi bi-patch-question empty-icon" aria-hidden="true"></i>
+      <div style="color: var(--text); font-weight: 600">No questions yet</div>
+      <div class="t-meta" style="margin-top: 0.25rem">This quiz hasn't been set up.</div>
+    </div>
+    {% endif %}
+  </form>
+
+</div>
+{% endblock %}

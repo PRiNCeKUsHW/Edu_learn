@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Class {{ class_obj.level }} {{ subject.name }} — EduLearn{% endblock %}
+
+{% block content %}
+<div class="container-page" style="padding-top: var(--space-6); padding-bottom: var(--space-8)">
+
+  <ol class="crumbs">
+    <li><a href="{% url 'dashboard' %}">Home</a></li>
+    <li><a href="{% url 'class_list' subject.slug %}">{{ subject.name }}</a></li>
+    <li class="is-current">Class {{ class_obj.level }}</li>
+  </ol>
+
+  <!-- ── Header ── -->
+  <header class="reveal reveal-1" style="margin-bottom: var(--space-6)">
+    <span class="t-eyebrow">{{ subject.name }}</span>
+    <h1 class="t-h1" style="margin-top: 0.3rem; margin-bottom: 0.4rem">Class {{ class_obj.level }}</h1>
+    <p class="t-meta" style="margin-bottom: 0">{{ chapters|length }} chapter{{ chapters|length|pluralize }}</p>
+  </header>
+
+  {% if chapters %}
+  <div class="accordion reveal reveal-2" id="chaptersAccordion">
+    {% for chapter in chapters %}
+    <div class="accordion-item" style="margin-bottom: var(--space-3); border-radius: var(--radius-lg); overflow: hidden">
+
+      <h2 class="accordion-header">
+        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#chapter{{ chapter.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="chapter{{ chapter.id }}">
+          <span class="row-index">{{ chapter.order }}</span>
+          <span class="flex-grow-1 text-start">{{ chapter.title }}</span>
+          <span class="chip">{{ chapter.lessons.all|length }} lesson{{ chapter.lessons.all|length|pluralize }}</span>
+        </button>
+      </h2>
+
+      <div id="chapter{{ chapter.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#chaptersAccordion">
+        <div class="accordion-body" style="padding: 0">
+
+          {% if chapter.description %}
+          <p class="t-meta surface-subtle" style="padding: var(--space-3) var(--space-4); margin: 0; border-top: 1px solid var(--border)">{{ chapter.description }}</p>
+          {% endif %}
+
+          {% for lesson in chapter.lessons.all %}
+          <a class="row-link" style="border-top: 1px solid var(--border); border-radius: 0" href="{% url 'lesson_detail' subject.slug class_obj.level chapter.slug lesson.slug %}">
+            {% if lesson.id in watched_ids %}
+            <i class="bi bi-check-circle-fill text-success-ink" style="font-size: 1.1rem" aria-hidden="true"></i>
+            {% else %}
+            <i class="bi bi-play-circle text-muted-ink" style="font-size: 1.1rem" aria-hidden="true"></i>
+            {% endif %}
+
+            <span class="flex-grow-1" style="min-width: 0">
+              <span class="row-title d-block">{{ lesson.title }}</span>
+              {% if lesson.duration_minutes %}
+              <span class="t-meta"><i class="bi bi-clock" aria-hidden="true"></i> {{ lesson.duration_minutes }} min</span>
+              {% endif %}
+            </span>
+
+            {% if lesson.id in watched_ids %}
+            <span class="chip chip-success">Watched</span>
+            {% else %}
+            <i class="bi bi-chevron-right text-muted-ink" aria-hidden="true"></i>
+            {% endif %}
+          </a>
+          {% empty %}
+          <p class="t-meta" style="padding: var(--space-4); margin: 0; border-top: 1px solid var(--border)">No lessons added yet.</p>
+          {% endfor %}
+
+          {% if chapter.quiz %}
+          <div class="surface-subtle d-flex align-items-center justify-content-between gap-3 flex-wrap" style="padding: var(--space-4); border-top: 1px solid var(--border)">
+            <span>
+              <span class="d-block" style="font-weight: 600; font-size: 0.9375rem">Chapter quiz</span>
+              <span class="t-meta">Pass mark {{ chapter.quiz.pass_percentage }}%</span>
+            </span>
+            <a class="btn btn-soft btn-sm-q" href="{% url 'quiz' subject.slug class_obj.level chapter.slug %}">
+              <i class="bi bi-patch-question" aria-hidden="true"></i>Take quiz
+            </a>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty">
+    <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
+    <div style="color: var(--text); font-weight: 600">No chapters yet</div>
+    <div class="t-meta" style="margin-top: 0.25rem">Chapters for this class haven't been added.</div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

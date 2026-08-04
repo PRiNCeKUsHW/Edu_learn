@@ -1,0 +1,53 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Quizzes{% endblock %}
+{% block topbar_title %}Quizzes{% endblock %}
+{% block topbar_sub %}Manage chapter MCQ quizzes{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-4">
+  <a href="{% url 'ap:quiz_add' %}" class="btn-ap btn-ap-primary">
+    <i class="bi bi-plus-circle"></i> Create Quiz
+  </a>
+</div>
+
+<div class="ap-card">
+  <div class="ap-table-wrap">
+  <table class="ap-table">
+    <thead>
+      <tr><th>Quiz Title</th><th>Chapter</th><th>Questions</th><th>Pass %</th><th>Attempts</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for quiz in quizzes %}
+      <tr>
+        <td class="fw-semibold">{{ quiz.title }}</td>
+        <td style="font-size:.8rem;color:var(--ink-3);">{{ quiz.chapter.title|truncatewords:5 }}</td>
+        <td><span class="ap-badge ap-badge-blue">{{ quiz.q_count }} Qs</span></td>
+        <td>
+          <span class="ap-badge {% if quiz.pass_percentage >= 70 %}ap-badge-red{% else %}ap-badge-yellow{% endif %}">
+            {{ quiz.pass_percentage }}%
+          </span>
+        </td>
+        <td><span class="ap-badge ap-badge-gray">{{ quiz.attempt_count }}</span></td>
+        <td>
+          <div class="d-flex gap-2">
+            <a href="{% url 'ap:quiz_detail' quiz.pk %}" class="btn-ap btn-ap-outline btn-ap-sm">
+              <i class="bi bi-list-ol"></i> Questions
+            </a>
+            <a href="{% url 'ap:quiz_edit' quiz.pk %}" class="btn-ap btn-ap-outline btn-ap-sm">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'ap:quiz_delete' quiz.pk %}" class="btn-ap btn-ap-danger btn-ap-sm">
+              <i class="bi bi-trash3"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6"><div class="ap-empty"><i class="bi bi-patch-question"></i><p>No quizzes yet. <a href="{% url 'ap:quiz_add' %}">Create one</a>.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% include "admin_panel/_pager.html" %}
+</div>
+{% endblock %}

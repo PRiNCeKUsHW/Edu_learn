@@ -1,0 +1,24 @@
+{
+  // Django templates are not plain HTML. Any formatter that treats them as HTML
+  // will wrap {% ... %} tags across lines and silently break them, because
+  // Django's lexer requires a tag to open and close on the same line.
+  // .prettierignore covers the Prettier extension; this covers VS Code's
+  // built-in HTML formatter, which ignores .prettierignore.
+  "[html]": {
+    "editor.formatOnSave": false
+  },
+  "[django-html]": {
+    "editor.formatOnSave": false
+  },
+
+  // Treat the template dirs as Django HTML so tag-aware tooling kicks in.
+  "files.associations": {
+    "**/templates/**/*.html": "django-html"
+  },
+
+  "emmet.includeLanguages": {
+    "django-html": "html"
+  },
+
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe"
+}

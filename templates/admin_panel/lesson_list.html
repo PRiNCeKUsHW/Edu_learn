@@ -1,0 +1,71 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Lessons{% endblock %}
+{% block topbar_title %}Lessons{% endblock %}
+{% block topbar_sub %}Manage all video lessons{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <form method="get" class="d-flex gap-2">
+    <select name="subject" class="form-select" style="width:160px;" onchange="this.form.submit()">
+      <option value="">All Subjects</option>
+      {% for s in subjects %}
+      <option value="{{ s.slug }}" {% if s.slug == subject_filter %}selected{% endif %}>{{ s.name }}</option>
+      {% endfor %}
+    </select>
+    <div class="input-group" style="width:220px;">
+      <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search lessons…">
+      <button type="submit" class="btn-ap btn-ap-outline" style="border-radius:0 8px 8px 0;border-left:0;">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </form>
+  <a href="{% url 'ap:lesson_add' %}" class="btn-ap btn-ap-primary">
+    <i class="bi bi-plus-circle"></i> Add Lesson
+  </a>
+</div>
+
+<div class="ap-card">
+  <div class="ap-table-wrap">
+  <table class="ap-table">
+    <thead>
+      <tr><th>Lesson</th><th>Chapter</th><th>Class</th><th>YouTube ID</th><th>Duration</th><th>Watches</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for lesson in lessons %}
+      <tr>
+        <td>
+          <div class="fw-semibold">{{ lesson.title }}</div>
+          <div style="font-size:.72rem;color:var(--ink-3);">{{ lesson.chapter.class_level.subject.name }}</div>
+        </td>
+        <td style="font-size:.8rem;color:var(--ink-3);">{{ lesson.chapter.title|truncatewords:4 }}</td>
+        <td><span class="ap-badge ap-badge-blue">Class {{ lesson.chapter.class_level.level }}</span></td>
+        <td>
+          <a href="https://youtube.com/watch?v={{ lesson.youtube_video_id }}" target="_blank"
+             class="ap-badge ap-badge-red" style="text-decoration:none;">
+            <i class="bi bi-youtube"></i> {{ lesson.youtube_video_id }}
+          </a>
+        </td>
+        <td style="font-size:.8rem;">
+          {% if lesson.duration_minutes %}{{ lesson.duration_minutes }} min{% else %}<span style="color:var(--ink-3);">—</span>{% endif %}
+        </td>
+        <td><span class="ap-badge ap-badge-gray">{{ lesson.watch_count }}</span></td>
+        <td>
+          <div class="d-flex gap-2">
+            <a href="{% url 'ap:lesson_edit' lesson.pk %}" class="btn-ap btn-ap-outline btn-ap-sm">
+              <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a href="{% url 'ap:lesson_delete' lesson.pk %}" class="btn-ap btn-ap-danger btn-ap-sm">
+              <i class="bi bi-trash3"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7"><div class="ap-empty"><i class="bi bi-play-circle"></i><p>No lessons yet. <a href="{% url 'ap:lesson_add' %}">Add one</a>.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% include "admin_panel/_pager.html" %}
+</div>
+{% endblock %}

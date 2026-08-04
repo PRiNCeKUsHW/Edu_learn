@@ -1,0 +1,39 @@
+{% comment %}
+Shared pager for the admin list pages.
+Expects `page_obj` (a Paginator Page) and `pager_query` (the current
+querystring minus `page`, already prefixed with '&') so active filters and
+search terms survive paging. Renders nothing when there's only one page.
+{% endcomment %}
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="ap-pager">
+  <div style="font-size: 0.8125rem; color: var(--text-muted)">
+    Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+  </div>
+
+  <nav class="ap-pager-links" aria-label="Pagination">
+    {% if page_obj.has_previous %}
+    <a class="btn-ap btn-ap-outline btn-ap-sm" href="?page={{ page_obj.previous_page_number }}{{ pager_query }}" rel="prev">
+      <i class="bi bi-chevron-left" aria-hidden="true"></i>Previous
+    </a>
+    {% else %}
+    <span class="btn-ap btn-ap-outline btn-ap-sm" aria-disabled="true" style="opacity: 0.45; pointer-events: none">
+      <i class="bi bi-chevron-left" aria-hidden="true"></i>Previous
+    </span>
+    {% endif %}
+
+    <span style="font-size: 0.8125rem; color: var(--text-muted); padding: 0 6px">
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+    <a class="btn-ap btn-ap-outline btn-ap-sm" href="?page={{ page_obj.next_page_number }}{{ pager_query }}" rel="next">
+      Next<i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </a>
+    {% else %}
+    <span class="btn-ap btn-ap-outline btn-ap-sm" aria-disabled="true" style="opacity: 0.45; pointer-events: none">
+      Next<i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </span>
+    {% endif %}
+  </nav>
+</div>
+{% endif %}

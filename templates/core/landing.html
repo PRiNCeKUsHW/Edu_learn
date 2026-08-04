@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}EduLearn — Learn at your own pace{% endblock %}
+{% block meta_description %}Video lessons, chapter quizzes and downloadable notes for Classes 6 to 12. Free to join.{% endblock %}
+
+{% block content %}
+
+<!-- ── Hero ── -->
+<section class="container-narrow" style="padding-top: var(--space-9); padding-bottom: var(--space-8); text-align: center">
+  <span class="chip chip-accent reveal reveal-1" style="margin-bottom: var(--space-5)">
+    <i class="bi bi-mortarboard-fill" aria-hidden="true"></i>Classes 6 to 12
+  </span>
+
+  <h1 class="t-display reveal reveal-2" style="margin-bottom: var(--space-4)">
+    Learn at your<br />own pace.
+  </h1>
+
+  <p class="t-lead reveal reveal-3" style="max-width: 46ch; margin-inline: auto; margin-bottom: var(--space-6)">
+    Video lessons, chapter quizzes and downloadable notes — with your progress tracked, lesson by lesson.
+  </p>
+
+  <div class="d-flex flex-wrap gap-2 justify-content-center reveal reveal-4">
+    <a class="btn btn-accent btn-lg-q" href="{% url 'register' %}">
+      Get started free<i class="bi bi-arrow-right" aria-hidden="true"></i>
+    </a>
+    <a class="btn btn-quiet btn-lg-q" href="{% url 'login' %}">Log in</a>
+  </div>
+
+  <p class="t-meta reveal reveal-4" style="margin-top: var(--space-4)">
+    <i class="bi bi-check2 text-success-ink" aria-hidden="true"></i>
+    No payment needed. Nothing to install.
+  </p>
+</section>
+
+<hr class="rule" style="max-width: 1180px; margin-inline: auto" />
+
+<!-- ── Three benefits ── -->
+<section class="container-page" style="padding-top: var(--space-7); padding-bottom: var(--space-8)">
+  <div class="row g-4">
+
+    <div class="col-md-4">
+      <div style="padding-right: var(--space-3)">
+        <i class="bi bi-play-btn text-accent" style="font-size: 1.5rem" aria-hidden="true"></i>
+        <h2 class="t-h2" style="font-size: 1.125rem; margin-top: var(--space-3); margin-bottom: 0.4rem">Watch</h2>
+        <p class="t-meta" style="font-size: 0.9375rem">
+          Concept-wise video lessons for every chapter, organised the way your syllabus is.
+        </p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div style="padding-right: var(--space-3)">
+        <i class="bi bi-patch-question text-accent" style="font-size: 1.5rem" aria-hidden="true"></i>
+        <h2 class="t-h2" style="font-size: 1.125rem; margin-top: var(--space-3); margin-bottom: 0.4rem">Practise</h2>
+        <p class="t-meta" style="font-size: 0.9375rem">
+          Take a quiz at the end of each chapter and see which answers you got wrong, and why.
+        </p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div style="padding-right: var(--space-3)">
+        <i class="bi bi-graph-up-arrow text-accent" style="font-size: 1.5rem" aria-hidden="true"></i>
+        <h2 class="t-h2" style="font-size: 1.125rem; margin-top: var(--space-3); margin-bottom: 0.4rem">Track</h2>
+        <p class="t-meta" style="font-size: 0.9375rem">
+          Mark lessons as watched, build a study streak, and always know what's left.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── Closing CTA ── -->
+<section class="container-narrow" style="padding-bottom: var(--space-9); text-align: center">
+  <div class="panel-lg" style="border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--bg-subtle)">
+    <h2 class="t-h2" style="margin-bottom: 0.5rem">Ready to start?</h2>
+    <p class="t-meta" style="margin-bottom: var(--space-5); font-size: 0.9375rem">
+      Create an account and pick your class. It takes a minute.
+    </p>
+    <a class="btn btn-accent btn-lg-q" href="{% url 'register' %}">Create free account</a>
+  </div>
+</section>
+
+{% endblock %}

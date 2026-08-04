@@ -1,0 +1,50 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}PDF Resources{% endblock %}
+{% block topbar_title %}PDF Resources{% endblock %}
+{% block topbar_sub %}Manage lesson attachments{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-4">
+  <a href="{% url 'ap:resource_add' %}" class="btn-ap btn-ap-primary">
+    <i class="bi bi-upload"></i> Upload Resource
+  </a>
+</div>
+
+<div class="ap-card">
+  <div class="ap-table-wrap">
+  <table class="ap-table">
+    <thead>
+      <tr><th>Title</th><th>Lesson</th><th>Chapter</th><th>Uploaded</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for resource in resources %}
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-file-earmark-pdf-fill" style="color:#ef4444;font-size:1.1rem;"></i>
+            <span class="fw-semibold">{{ resource.title }}</span>
+          </div>
+        </td>
+        <td style="font-size:.8rem;">{{ resource.lesson.title|truncatewords:5 }}</td>
+        <td style="font-size:.8rem;color:var(--ink-3);">{{ resource.lesson.chapter.title|truncatewords:4 }}</td>
+        <td style="font-size:.8rem;color:var(--ink-3);">{{ resource.uploaded_at|date:"d M Y" }}</td>
+        <td>
+          <div class="d-flex gap-2">
+            <a href="{{ resource.file.url }}" target="_blank" class="btn-ap btn-ap-outline btn-ap-sm">
+              <i class="bi bi-download"></i> View
+            </a>
+            <a href="{% url 'ap:resource_delete' resource.pk %}" class="btn-ap btn-ap-danger btn-ap-sm">
+              <i class="bi bi-trash3"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5"><div class="ap-empty"><i class="bi bi-file-earmark-x"></i><p>No resources yet.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% include "admin_panel/_pager.html" %}
+</div>
+{% endblock %}

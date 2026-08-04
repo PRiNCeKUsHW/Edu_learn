@@ -1,0 +1,94 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Add Choices{% endblock %}
+{% block topbar_title %}Add Choices{% endblock %}
+{% block topbar_sub %}{{ question.text|truncatewords:8 }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Add Choice Form -->
+  <div class="col-lg-5">
+    <div class="ap-card">
+      <div class="ap-card-header">
+        <i class="bi bi-plus-circle" style="color:var(--accent);"></i>
+        <h2 class="ap-card-title">Add Choice</h2>
+      </div>
+      <div class="ap-card-body">
+        <div class="mb-3 p-3 rounded-3" style="background:var(--surface-2);">
+          <div style="font-size:.72rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Question</div>
+          <div style="font-size:.875rem;font-weight:500;">{{ question.text }}</div>
+        </div>
+
+        <form method="post">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="mb-3">
+            <label class="ap-form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.field.widget.input_type == 'checkbox' %}
+              <div class="form-check">
+                {{ field }}
+                <label class="form-check-label" for="{{ field.id_for_label }}" style="font-size:.875rem;">
+                  This is the correct answer
+                </label>
+              </div>
+            {% else %}
+              {{ field }}
+            {% endif %}
+            {% if field.errors %}
+              {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+            {% endif %}
+          </div>
+          {% endfor %}
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn-ap btn-ap-primary">
+              <i class="bi bi-plus-circle"></i> Add Choice
+            </button>
+            <a href="{% url 'ap:quiz_detail' quiz.pk %}" class="btn-ap btn-ap-outline">Done</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Existing Choices -->
+  <div class="col-lg-7">
+    <div class="ap-card">
+      <div class="ap-card-header">
+        <i class="bi bi-list-check" style="color:var(--accent);"></i>
+        <h2 class="ap-card-title">Current Choices ({{ choices.count }})</h2>
+      </div>
+      <div class="ap-card-body d-flex flex-column gap-2">
+        {% for choice in choices %}
+        <div class="d-flex align-items-center gap-3 p-3 rounded-3"
+             style="background:{% if choice.is_correct %}#f0fdf4{% else %}var(--surface-2){% endif %};border:1px solid {% if choice.is_correct %}#bbf7d0{% else %}var(--border){% endif %};">
+          <i class="bi {% if choice.is_correct %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %} fs-5"></i>
+          <span style="flex:1;font-size:.875rem;">{{ choice.text }}</span>
+          {% if choice.is_correct %}
+            <span class="ap-badge ap-badge-green">Correct</span>
+          {% endif %}
+          <form method="post" action="{% url 'ap:choice_delete' choice.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-ap btn-ap-danger btn-ap-sm" onclick="return confirm('Delete this choice?')">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </form>
+        </div>
+        {% empty %}
+        <div class="ap-empty" style="padding:24px;">
+          <i class="bi bi-list-ul"></i>
+          <p>No choices yet. Add at least 2 using the form.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if choices.count >= 2 %}
+    <div class="ap-alert ap-alert-info mt-3">
+      <i class="bi bi-info-circle-fill"></i>
+      Make sure exactly <strong>one</strong> choice is marked as correct.
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

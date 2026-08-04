@@ -1,0 +1,729 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Admin{% endblock %} — EduLearn Panel</title>
+
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem("edulearn-theme");
+        var theme = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-bs-theme", theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <!-- Shared design system: same tokens as the student site -->
+  <link href="{% static 'css/app.css' %}" rel="stylesheet" />
+
+  <style>
+    /* ======================================================================
+       Admin panel shell.
+       The .ap-* / .btn-ap-* / .stat-* class names and the legacy --ink /
+       --surface-2 / --red variables below are the contract the 13 child
+       templates are written against — they are kept deliberately and simply
+       re-pointed at the shared design tokens, so the whole panel picks up the
+       new look (and dark mode) without touching those templates.
+       ====================================================================== */
+
+    :root {
+      --sidebar-w: 248px;
+      --topbar-h: 60px;
+
+      /* Legacy names -> shared tokens */
+      --ink: var(--text);
+      --ink-2: var(--text-secondary);
+      --ink-3: var(--text-muted);
+      --surface: var(--bg-subtle);
+      --surface-2: var(--bg-subtle);
+      --red: var(--danger);
+      --green: var(--success);
+      --yellow: var(--warn);
+      --accent-2: var(--accent-hover);
+    }
+
+    /* The sidebar is always dark-on-dark; give it its own fixed palette so it
+       reads the same in both themes. */
+    .sidebar {
+      --side-bg: #14141a;
+      --side-fg: #f2f2f5;
+      --side-dim: #9494a2;
+      --side-line: rgba(255, 255, 255, 0.09);
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg-subtle);
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--sidebar-w);
+      height: 100dvh;
+      background: var(--side-bg);
+      display: flex;
+      flex-direction: column;
+      z-index: 1045;
+      overflow-y: auto;
+      transition: transform var(--dur-slow) var(--ease);
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: var(--topbar-h);
+      padding: 0 18px;
+      border-bottom: 1px solid var(--side-line);
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .sidebar-logo .logo-icon {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+      background: var(--accent);
+      color: var(--on-accent);
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .sidebar-logo .logo-text {
+      font-family: var(--font-display);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--side-fg);
+      letter-spacing: -0.02em;
+    }
+    .sidebar-logo .logo-sub {
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.11em;
+      color: var(--side-dim);
+    }
+
+    .sidebar-section {
+      padding: 18px 14px 6px;
+      font-family: var(--font-display);
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: var(--side-dim);
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      padding: 8px 12px;
+      margin: 1px 8px;
+      border-radius: var(--radius-sm);
+      color: var(--side-dim);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+    }
+    .sidebar-link:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--side-fg);
+    }
+    .sidebar-link.active {
+      background: var(--accent);
+      color: var(--on-accent);
+    }
+    .sidebar-link i {
+      font-size: 1rem;
+      width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 14px;
+      border-top: 1px solid var(--side-line);
+    }
+    .sidebar-footer a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      color: var(--side-dim);
+      text-decoration: none;
+      font-size: 0.8125rem;
+    }
+    .sidebar-footer a:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--side-fg);
+    }
+
+    /* ── Main ── */
+    .main-wrap {
+      margin-left: var(--sidebar-w);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      height: var(--topbar-h);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    [data-bs-theme="light"] .topbar {
+      background: #fff;
+    }
+    .topbar-title {
+      font-family: var(--font-display);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .topbar-sub {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .topbar-avatar {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--accent-border);
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .page-body {
+      padding: 22px 20px 40px;
+      flex: 1;
+    }
+
+    /* Sidebar toggle — only shown on small screens */
+    .sidebar-toggle {
+      display: none;
+    }
+    .sidebar-scrim {
+      display: none;
+    }
+
+    /* ── Cards ── */
+    .ap-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    [data-bs-theme="light"] .ap-card {
+      background: #fff;
+    }
+    .ap-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ap-card-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .ap-card-body {
+      padding: 18px;
+    }
+
+    /* ── Stat cards ── */
+    .stat-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    [data-bs-theme="light"] .stat-card {
+      background: #fff;
+    }
+    .stat-icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      border-radius: var(--radius-md);
+      font-size: 1.2rem;
+    }
+    .stat-val {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+    .stat-label {
+      margin-top: 3px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Table ── */
+    .ap-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .ap-table th {
+      padding: 10px 16px;
+      font-family: var(--font-display);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      text-align: left;
+    }
+    .ap-table td {
+      padding: 12px 16px;
+      font-size: 0.875rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .ap-table tr:last-child td {
+      border-bottom: none;
+    }
+    .ap-table tbody tr:hover td {
+      background: var(--bg-subtle);
+    }
+    /* Wide tables scroll inside their own box, never the page body. The pager
+       sits outside this wrapper so it stays put while the table scrolls. */
+    .ap-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ap-table-wrap > .ap-table {
+      min-width: 640px;
+    }
+
+    /* ── Buttons ── */
+    .btn-ap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 38px;
+      padding: 7px 14px;
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 600;
+      line-height: 1.2;
+      cursor: pointer;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+        border-color var(--dur) var(--ease);
+    }
+    .btn-ap-primary {
+      background: var(--accent);
+      color: var(--on-accent);
+      border-color: var(--accent);
+    }
+    .btn-ap-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      color: var(--on-accent);
+    }
+    .btn-ap-outline {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+    [data-bs-theme="light"] .btn-ap-outline {
+      background: #fff;
+    }
+    .btn-ap-outline:hover {
+      background: var(--bg-subtle);
+      color: var(--text);
+    }
+    .btn-ap-danger {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border-color: transparent;
+    }
+    .btn-ap-danger:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+    .btn-ap-success {
+      background: var(--success-soft);
+      color: var(--success);
+      border-color: transparent;
+    }
+    .btn-ap-success:hover {
+      background: var(--success);
+      color: #fff;
+    }
+    .btn-ap-sm {
+      min-height: 32px;
+      padding: 4px 10px;
+      font-size: 0.8125rem;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── Badges ── */
+    .ap-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .ap-badge-blue,
+    .ap-badge-purple {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .ap-badge-green {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+    .ap-badge-red {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+    .ap-badge-yellow {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+    .ap-badge-gray {
+      background: var(--bg-subtle);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Forms ── */
+    .ap-form-label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .form-text {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .invalid-feedback {
+      font-size: 0.75rem;
+      color: var(--danger);
+    }
+
+    /* ── Alerts ── */
+    .ap-alert {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 15px;
+      margin-bottom: 14px;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      border: 1px solid transparent;
+    }
+    .ap-alert-success {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+    .ap-alert-error {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+    .ap-alert-info {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .ap-alert-warning {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    /* ── Empty state ── */
+    .ap-empty {
+      text-align: center;
+      padding: 44px 20px;
+      color: var(--text-muted);
+    }
+    .ap-empty i {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 2rem;
+    }
+    .ap-empty p {
+      margin: 0;
+      font-size: 0.875rem;
+    }
+
+    /* ── Pagination ── */
+    .ap-pager {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+    }
+    .ap-pager-links {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Page header rows pair a filter form with a primary action. The list
+       templates give those controls fixed inline widths (160px + 220px), which
+       together with the button overflow a phone — so below tablet let the row
+       wrap and the controls go full width. The !important is needed to beat
+       the inline style attribute. */
+    @media (max-width: 767.98px) {
+      .page-body > .d-flex.justify-content-between {
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .page-body form.d-flex {
+        flex-wrap: wrap;
+        width: 100%;
+      }
+      .page-body form.d-flex > .form-select,
+      .page-body form.d-flex > .input-group,
+      .page-body form.d-flex > .form-control {
+        width: 100% !important;
+      }
+    }
+
+    /* ── Responsive: the sidebar becomes a drawer ── */
+    @media (max-width: 991.98px) {
+      .sidebar {
+        transform: translateX(-100%);
+        box-shadow: var(--shadow-lg);
+      }
+      body.sidebar-open .sidebar {
+        transform: translateX(0);
+      }
+      .main-wrap {
+        margin-left: 0;
+      }
+      .sidebar-toggle {
+        display: inline-grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+      }
+      body.sidebar-open .sidebar-scrim {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 1040;
+        background: rgba(0, 0, 0, 0.45);
+      }
+      .topbar-user-meta {
+        display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sidebar {
+        transition: none;
+      }
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<a class="skip-link" href="#apMain">Skip to content</a>
+
+<!-- ══════════════════════ SIDEBAR ══════════════════════ -->
+<aside class="sidebar" id="apSidebar">
+  <a class="sidebar-logo" href="{% url 'ap:dashboard' %}">
+    <span class="logo-icon"><i class="bi bi-mortarboard-fill"></i></span>
+    <span>
+      <span class="logo-text d-block">EduLearn</span>
+      <span class="logo-sub d-block">ADMIN PANEL</span>
+    </span>
+  </a>
+
+  <nav aria-label="Admin sections">
+    <div class="sidebar-section">Content</div>
+    <a href="{% url 'ap:subject_list' %}" class="sidebar-link {% if page == 'subjects' %}active{% endif %}" {% if page == 'subjects' %}aria-current="page"{% endif %}>
+      <i class="bi bi-journal-bookmark" aria-hidden="true"></i> Subjects
+    </a>
+    <a href="{% url 'ap:classlevel_list' %}" class="sidebar-link {% if page == 'classes' %}active{% endif %}" {% if page == 'classes' %}aria-current="page"{% endif %}>
+      <i class="bi bi-layers" aria-hidden="true"></i> Class Levels
+    </a>
+    <a href="{% url 'ap:chapter_list' %}" class="sidebar-link {% if page == 'chapters' %}active{% endif %}" {% if page == 'chapters' %}aria-current="page"{% endif %}>
+      <i class="bi bi-collection" aria-hidden="true"></i> Chapters
+    </a>
+    <a href="{% url 'ap:lesson_list' %}" class="sidebar-link {% if page == 'lessons' %}active{% endif %}" {% if page == 'lessons' %}aria-current="page"{% endif %}>
+      <i class="bi bi-play-circle" aria-hidden="true"></i> Lessons
+    </a>
+    <a href="{% url 'ap:resource_list' %}" class="sidebar-link {% if page == 'resources' %}active{% endif %}" {% if page == 'resources' %}aria-current="page"{% endif %}>
+      <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Resources
+    </a>
+
+    <div class="sidebar-section">Assessment</div>
+    <a href="{% url 'ap:quiz_list' %}" class="sidebar-link {% if page == 'quizzes' %}active{% endif %}" {% if page == 'quizzes' %}aria-current="page"{% endif %}>
+      <i class="bi bi-patch-question" aria-hidden="true"></i> Quizzes
+    </a>
+
+    <div class="sidebar-section">People</div>
+    <a href="{% url 'ap:user_list' %}" class="sidebar-link {% if page == 'users' %}active{% endif %}" {% if page == 'users' %}aria-current="page"{% endif %}>
+      <i class="bi bi-people" aria-hidden="true"></i> Users
+    </a>
+    <a href="{% url 'ap:comment_list' %}" class="sidebar-link {% if page == 'comments' %}active{% endif %}" {% if page == 'comments' %}aria-current="page"{% endif %}>
+      <i class="bi bi-chat-dots" aria-hidden="true"></i> Comments
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="{% url 'dashboard' %}">
+      <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> View student site
+    </a>
+  </div>
+</aside>
+
+<div class="sidebar-scrim" data-sidebar-close></div>
+
+<!-- ══════════════════════ MAIN ══════════════════════ -->
+<div class="main-wrap">
+
+  <div class="topbar">
+    <button class="sidebar-toggle" type="button" data-sidebar-toggle aria-label="Open navigation" aria-controls="apSidebar" aria-expanded="false">
+      <i class="bi bi-list" aria-hidden="true"></i>
+    </button>
+
+    <div style="min-width: 0">
+      <span class="topbar-title">{% block topbar_title %}Dashboard{% endblock %}</span>
+      <span class="topbar-sub">{% block topbar_sub %}{% endblock %}</span>
+    </div>
+
+    <div class="topbar-right">
+      <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch colour theme">
+        <i class="bi bi-moon-stars"></i>
+        <i class="bi bi-sun"></i>
+      </button>
+      <span class="topbar-avatar">{{ request.user.first_name|default:request.user.username|slice:":1"|upper }}</span>
+      <div class="topbar-user-meta" style="font-size: 0.8125rem; line-height: 1.3">
+        <div style="font-weight: 600; color: var(--text)">{{ request.user.get_full_name|default:request.user.username }}</div>
+        <div style="color: var(--text-muted); font-size: 0.6875rem">{% if request.user.is_superuser %}Superuser{% else %}Staff{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  {% if messages %}
+  <div style="padding: 16px 20px 0">
+    {% for message in messages %}
+      <div class="ap-alert ap-alert-{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}" role="alert">
+        <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' %}bi-x-circle-fill{% elif message.tags == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %}" aria-hidden="true"></i>
+        <span>{{ message }}</span>
+        <button type="button" onclick="this.parentElement.remove()" aria-label="Dismiss" style="margin-left: auto; background: none; border: 0; cursor: pointer; font-size: 1.1rem; color: inherit; opacity: 0.6; line-height: 1">&times;</button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <main class="page-body" id="apMain">
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Theme toggle — shares the student site's stored preference.
+  document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var root = document.documentElement;
+      var next = root.getAttribute("data-bs-theme") === "dark" ? "light" : "dark";
+      root.setAttribute("data-bs-theme", next);
+      try {
+        localStorage.setItem("edulearn-theme", next);
+      } catch (e) {}
+    });
+  });
+
+  // Sidebar drawer on small screens.
+  (function () {
+    var toggle = document.querySelector("[data-sidebar-toggle]");
+    if (!toggle) return;
+    function setOpen(open) {
+      document.body.classList.toggle("sidebar-open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    toggle.addEventListener("click", function () {
+      setOpen(!document.body.classList.contains("sidebar-open"));
+    });
+    document.querySelectorAll("[data-sidebar-close]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        setOpen(false);
+      });
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") setOpen(false);
+    });
+  })();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

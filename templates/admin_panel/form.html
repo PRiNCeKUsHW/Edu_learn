@@ -1,0 +1,102 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block topbar_title %}{{ title }}{% endblock %}
+{% block topbar_sub %}{{ subtitle }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8 col-xl-7">
+
+    {% if help_text %}
+    <div class="ap-alert ap-alert-info mb-4">
+      <i class="bi bi-info-circle-fill"></i>
+      {{ help_text }}
+    </div>
+    {% endif %}
+
+    <div class="ap-card">
+      <div class="ap-card-header">
+        <i class="bi {% if obj %}bi-pencil-square{% else %}bi-plus-circle{% endif %}" style="color:var(--accent);"></i>
+        <h2 class="ap-card-title">{{ title }}</h2>
+      </div>
+      <div class="ap-card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          {% for field in form %}
+          <div class="mb-4">
+            <label class="ap-form-label" for="{{ field.id_for_label }}">
+              {{ field.label }}
+              {% if field.field.required %}<span style="color:var(--red);margin-left:2px;">*</span>{% endif %}
+            </label>
+
+            {% if field.field.widget.input_type == 'checkbox' %}
+              <div class="form-check">
+                {{ field }}
+                <label class="form-check-label" for="{{ field.id_for_label }}" style="font-size:.875rem;">
+                  {{ field.label }}
+                </label>
+              </div>
+            {% else %}
+              {{ field }}
+            {% endif %}
+
+            {% if field.help_text %}
+              <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.errors %}
+              {% for error in field.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            {% endif %}
+          </div>
+          {% endfor %}
+
+          {% if form.non_field_errors %}
+          <div class="ap-alert ap-alert-error mb-3">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="d-flex gap-3 pt-2">
+            <button type="submit" class="btn-ap btn-ap-primary">
+              <i class="bi {% if obj %}bi-check-lg{% else %}bi-plus-circle{% endif %}"></i>
+              {% if obj %}Save Changes{% else %}Create{% endif %}
+            </button>
+            {% if back_pk %}
+              {# Positional — see the same note in confirm_delete.html. #}
+              <a href="{% url back_url back_pk %}" class="btn-ap btn-ap-outline">Cancel</a>
+            {% else %}
+              <a href="{% url back_url %}" class="btn-ap btn-ap-outline">Cancel</a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-generate slug from name/title field
+(function() {
+  const nameField  = document.getElementById('id_name') || document.getElementById('id_title');
+  const slugField  = document.getElementById('id_slug');
+  if (!nameField || !slugField) return;
+  // Only auto-fill if slug is currently empty
+  nameField.addEventListener('input', function() {
+    if (slugField.dataset.locked) return;
+    slugField.value = nameField.value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  });
+  slugField.addEventListener('input', function() {
+    slugField.dataset.locked = slugField.value ? '1' : '';
+  });
+})();
+</script>
+{% endblock %}

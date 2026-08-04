@@ -1,0 +1,16 @@
+Django>=5.2
+python-decouple==3.8
+Pillow>=11.0
+django-ratelimit==4.1.0
+
+# PostgreSQL support (production). Not needed for local SQLite development —
+# see elearn_project/settings.py and README.md for how DATABASE_URL selects
+# between the two.
+dj-database-url==3.1.2
+psycopg[binary]==3.3.4
+
+# Test-only. django-ratelimit windows by real epoch time (see
+# django_ratelimit.core._get_window), so tests that fire a burst of
+# requests and assert the Nth one gets rate-limited need frozen time to
+# avoid a rare, real flake if the burst straddles a window boundary.
+freezegun==1.5.5

@@ -1,0 +1,1221 @@
+/* ==========================================================================
+   EduLearn design system
+   Direction: focused & minimal — content-first, generous whitespace,
+   restrained colour, type-led. Progress data is the one expressive element.
+
+   Layered on top of Bootstrap 5.3 (loaded first). Bootstrap keeps providing
+   the grid + JS behaviours; everything visual is re-tokenised here.
+   Dark mode rides on Bootstrap's native [data-bs-theme] so its own
+   components (dropdowns, accordions, form controls) follow along.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Tokens
+   -------------------------------------------------------------------------- */
+:root {
+  /* Type */
+  --font-display: "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Source Sans 3", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Spacing — spacious end of the scale, per "minimal" direction */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /* Radius — restrained, not bubbly */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-pill: 999px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 180ms;
+  --dur-slow: 280ms;
+
+  --nav-h: 60px;
+  --bottom-nav-h: 60px;
+  --bottom-nav-border: 1px;
+  /* Total space the fixed bar occupies: items + its top border + home indicator */
+  --bottom-nav-space: calc(
+    var(--bottom-nav-h) + var(--bottom-nav-border) + env(safe-area-inset-bottom, 0px)
+  );
+}
+
+/* Light theme (default) */
+:root,
+[data-bs-theme="light"] {
+  --bg: #ffffff;
+  --bg-subtle: #f7f7f9;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+
+  --text: #17171b; /* 17.9:1 on --bg */
+  --text-secondary: #55555f; /* 7.4:1 */
+  --text-muted: #6b6b76; /* 5.3:1 — AA for body */
+
+  --border: #e6e6eb;
+  --border-strong: #d3d3db;
+
+  --accent: #6d31d9; /* 6.8:1 on white */
+  --accent-hover: #5b27ba;
+  --accent-soft: #f3effd;
+  --accent-border: #ddd0f9;
+  --on-accent: #ffffff;
+
+  --success: #06765a; /* 5.6:1 */
+  --success-soft: #e7f6f1;
+  --warn: #8a5300; /* 6.3:1 */
+  --warn-soft: #fdf3e3;
+  --danger: #c2261d; /* 5.9:1 */
+  --danger-soft: #fdeceb;
+
+  --track: #ebebf0;
+  --shadow-sm: 0 1px 2px rgba(16, 16, 24, 0.05);
+  --shadow-md: 0 4px 14px rgba(16, 16, 24, 0.07);
+  --shadow-lg: 0 12px 32px rgba(16, 16, 24, 0.1);
+}
+
+/* Dark theme */
+[data-bs-theme="dark"] {
+  --bg: #0c0c10;
+  --bg-subtle: #14141a;
+  --surface: #14141a;
+  --surface-raised: #1b1b23;
+
+  --text: #f2f2f5; /* 17.5:1 on --bg */
+  --text-secondary: #b6b6c2; /* 9.7:1 */
+  --text-muted: #9494a2; /* 6.5:1 */
+
+  --border: #26262f;
+  --border-strong: #35353f;
+
+  --accent: #b69dfa; /* 8.6:1 on --bg */
+  --accent-hover: #c7b4fc;
+  --accent-soft: #1d1830;
+  --accent-border: #322a52;
+  --on-accent: #17102b;
+
+  --success: #4bd6ac; /* 10.7:1 */
+  --success-soft: #0d2620;
+  --warn: #f0b45c; /* 10.6:1 */
+  --warn-soft: #2a1e0c;
+  --danger: #f4867c; /* 8.0:1 */
+  --danger-soft: #2c1513;
+
+  --track: #26262f;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+/* Bootstrap variable bridge — makes BS components inherit our palette */
+:root,
+[data-bs-theme="light"],
+[data-bs-theme="dark"] {
+  --bs-body-bg: var(--bg);
+  --bs-body-color: var(--text);
+  --bs-border-color: var(--border);
+  --bs-primary: var(--accent);
+  --bs-link-color: var(--accent);
+  --bs-link-hover-color: var(--accent-hover);
+  --bs-body-font-family: var(--font-body);
+  --bs-emphasis-color: var(--text);
+  --bs-secondary-color: var(--text-secondary);
+  --bs-tertiary-bg: var(--bg-subtle);
+}
+
+/* --------------------------------------------------------------------------
+   2. Base
+   -------------------------------------------------------------------------- */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  letter-spacing: -0.003em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-display {
+  font-family: var(--font-display);
+  color: var(--text);
+  letter-spacing: -0.022em;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+/* Type-led scale — large, confident headings with room to breathe */
+.t-display {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 6vw, 3.75rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+.t-h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.028em;
+}
+.t-h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+}
+.t-lead {
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.t-meta {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+/* Quiet section label */
+.t-eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.text-secondary-ink {
+  color: var(--text-secondary) !important;
+}
+.text-muted-ink {
+  color: var(--text-muted) !important;
+}
+.text-accent {
+  color: var(--accent) !important;
+}
+.text-success-ink {
+  color: var(--success) !important;
+}
+.text-danger-ink {
+  color: var(--danger) !important;
+}
+.text-warn-ink {
+  color: var(--warn) !important;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: color var(--dur) var(--ease);
+}
+a:hover {
+  color: var(--accent-hover);
+}
+
+/* Visible focus for keyboard nav — never removed */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.btn:focus-visible,
+.form-control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* Layout helper: readable measure for content-first pages.
+   Side padding is >= half of a g-5 gutter (24px) on purpose: Bootstrap rows
+   pull themselves out by half the gutter via negative margins, and anything
+   less here lets a .row poke past the viewport edge. */
+.container-narrow {
+  max-width: 780px;
+  margin-inline: auto;
+  padding-inline: var(--space-5);
+}
+.container-page {
+  max-width: 1180px;
+  margin-inline: auto;
+  padding-inline: var(--space-5);
+}
+.stack-lg > * + * {
+  margin-top: var(--space-7);
+}
+
+/* Quiet hairline divider */
+.rule {
+  height: 1px;
+  background: var(--border);
+  border: 0;
+  margin: var(--space-6) 0;
+}
+
+/* --------------------------------------------------------------------------
+   3. Top navigation
+   -------------------------------------------------------------------------- */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .site-nav {
+    background: var(--bg);
+  }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-decoration: none;
+}
+.brand:hover {
+  color: var(--text);
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.9rem;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nav-link-q {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.nav-link-q:hover {
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+.nav-link-q[aria-current="page"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Icon-only control — always paired with aria-label in markup */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.icon-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+
+/* Theme toggle: shows the icon of the mode you'd switch TO */
+.theme-toggle .bi-moon-stars,
+.theme-toggle .bi-sun {
+  display: none;
+}
+[data-bs-theme="light"] .theme-toggle .bi-moon-stars {
+  display: block;
+}
+[data-bs-theme="dark"] .theme-toggle .bi-sun {
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   4. Surfaces
+   -------------------------------------------------------------------------- */
+.card,
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: none; /* minimal: hairline over shadow */
+}
+
+.panel {
+  padding: var(--space-5);
+}
+.panel-lg {
+  padding: var(--space-6);
+}
+
+/* Interactive card — subtle lift only */
+.card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+.card-link:hover {
+  color: inherit;
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.card-link:active {
+  transform: translateY(0);
+}
+
+.surface-subtle {
+  background: var(--bg-subtle);
+}
+
+/* --------------------------------------------------------------------------
+   5. Buttons
+   -------------------------------------------------------------------------- */
+.btn {
+  --_h: 42px;
+  min-height: var(--_h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.btn:active {
+  transform: scale(0.985);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+.btn-accent:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent);
+}
+
+.btn-quiet {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn-quiet:hover {
+  background: var(--bg-subtle);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+
+.btn-soft {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+.btn-soft:hover {
+  background: var(--accent-border);
+  color: var(--accent);
+}
+
+.btn-lg-q {
+  --_h: 50px;
+  padding: 0.7rem 1.6rem;
+  font-size: 1rem;
+}
+.btn-sm-q {
+  --_h: 36px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.875rem;
+}
+.btn-block-q {
+  width: 100%;
+}
+
+/* Legacy alias so any un-migrated markup still looks right */
+.btn-brand {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.btn-brand:hover {
+  background: var(--accent-hover);
+  color: var(--on-accent);
+}
+
+/* --------------------------------------------------------------------------
+   6. Chips / badges
+   -------------------------------------------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.chip-accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+.chip-success {
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: transparent;
+}
+.chip-warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-color: transparent;
+}
+.chip-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   7. Progress — the expressive layer
+   -------------------------------------------------------------------------- */
+.meter {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--track);
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  /* animates from 0 on load via .is-ready */
+  width: 0;
+  transition: width 700ms var(--ease);
+}
+.meter-fill.is-success {
+  background: var(--success);
+}
+
+/* Ring: conic-gradient donut, --pct set inline from the view */
+.ring {
+  --pct: 0;
+  --ring-size: 56px;
+  --ring-thick: 5px;
+  position: relative;
+  width: var(--ring-size);
+  height: var(--ring-size);
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: conic-gradient(
+    var(--accent) calc(var(--pct) * 1%),
+    var(--track) 0
+  );
+  display: grid;
+  place-items: center;
+  transition: background var(--dur-slow) var(--ease);
+}
+.ring::before {
+  content: "";
+  position: absolute;
+  inset: var(--ring-thick);
+  border-radius: 50%;
+  background: var(--surface);
+}
+.ring-label {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.ring-lg {
+  --ring-size: 92px;
+  --ring-thick: 7px;
+}
+.ring-lg .ring-label {
+  font-size: 1.125rem;
+}
+.ring-complete {
+  --accent: var(--success);
+}
+
+/* Stat tile row — quiet container, loud number */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-3);
+}
+.stat {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+/* Streak: 7-day dot strip */
+.streak-days {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.streak-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--track);
+}
+.streak-dot.is-active {
+  background: var(--warn);
+}
+
+/* --------------------------------------------------------------------------
+   8. Lesson rows / lists
+   -------------------------------------------------------------------------- */
+.row-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  min-height: 56px;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur) var(--ease);
+}
+.row-link:hover {
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+.row-link + .row-link {
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
+.row-link.is-current {
+  background: var(--accent-soft);
+}
+.row-link.is-current .row-title {
+  color: var(--accent);
+  font-weight: 600;
+}
+.row-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Numbered index marker, quiet by default */
+.row-index {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.avatar-sm {
+  width: 28px;
+  height: 28px;
+  font-size: 0.6875rem;
+}
+.avatar-lg {
+  width: 44px;
+  height: 44px;
+  font-size: 1rem;
+}
+/* Legacy alias */
+.avatar-circle {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   9. Video
+   -------------------------------------------------------------------------- */
+.video-wrapper {
+  position: relative;
+  padding-bottom: 56.25%; /* reserve space — avoids layout shift */
+  height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: #000;
+  border: 1px solid var(--border);
+}
+.video-wrapper iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   10. Forms
+   -------------------------------------------------------------------------- */
+.field {
+  display: block;
+  margin-bottom: var(--space-4);
+}
+.field-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.35rem;
+}
+.field-hint {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+}
+.field-error {
+  font-size: 0.8125rem;
+  color: var(--danger);
+  margin-top: 0.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.85rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.input::placeholder {
+  color: var(--text-muted);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.input.is-invalid {
+  border-color: var(--danger);
+}
+textarea.input {
+  min-height: 90px;
+  resize: vertical;
+}
+
+/* Bootstrap form controls, re-skinned */
+.form-control,
+.form-select {
+  min-height: 44px;
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+}
+.form-control:focus,
+.form-select:focus {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.form-control::placeholder {
+  color: var(--text-muted);
+}
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.input-group-text {
+  background: var(--bg-subtle);
+  border-color: var(--border-strong);
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   11. Quiz choices
+   -------------------------------------------------------------------------- */
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  min-height: 52px;
+  margin-bottom: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.choice:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-subtle);
+}
+.choice:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.choice input[type="radio"] {
+  margin-top: 0.25rem;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.choice-text {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+/* Review states carry an icon + label too, never colour alone */
+.review-correct {
+  border-left: 3px solid var(--success);
+}
+.review-wrong {
+  border-left: 3px solid var(--danger);
+}
+
+/* --------------------------------------------------------------------------
+   12. Breadcrumb
+   -------------------------------------------------------------------------- */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  font-size: 0.8125rem;
+}
+.crumbs a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.crumbs a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.crumbs li:not(:last-child)::after {
+  content: "/";
+  margin-left: 0.4rem;
+  color: var(--border-strong);
+}
+.crumbs .is-current {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   13. Accordion (Bootstrap) re-skin
+   -------------------------------------------------------------------------- */
+.accordion {
+  --bs-accordion-bg: var(--surface);
+  --bs-accordion-border-color: var(--border);
+  --bs-accordion-btn-color: var(--text);
+  --bs-accordion-active-color: var(--accent);
+  --bs-accordion-active-bg: var(--accent-soft);
+  --bs-accordion-border-radius: var(--radius-lg);
+  --bs-accordion-btn-focus-box-shadow: none;
+  --bs-accordion-color: var(--text);
+}
+.accordion-button {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  min-height: 56px;
+  gap: var(--space-3);
+}
+.accordion-button::after {
+  transition: transform var(--dur) var(--ease);
+}
+.accordion-button:not(.collapsed) {
+  box-shadow: none;
+}
+.accordion-item {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+/* --------------------------------------------------------------------------
+   14. Dropdown / alert (Bootstrap) re-skin
+   -------------------------------------------------------------------------- */
+.dropdown-menu {
+  --bs-dropdown-bg: var(--surface-raised);
+  --bs-dropdown-border-color: var(--border);
+  --bs-dropdown-link-color: var(--text);
+  --bs-dropdown-link-hover-bg: var(--bg-subtle);
+  --bs-dropdown-link-hover-color: var(--text);
+  --bs-dropdown-border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 0.35rem;
+}
+.dropdown-item {
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alert {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  background: var(--bg-subtle);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.alert-success {
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: transparent;
+}
+.alert-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: transparent;
+}
+.alert-info {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: transparent;
+}
+.alert-warning {
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-color: transparent;
+}
+.alert .btn-close {
+  margin-left: auto;
+  filter: none;
+}
+[data-bs-theme="dark"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* --------------------------------------------------------------------------
+   15. Empty state
+   -------------------------------------------------------------------------- */
+.empty {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+}
+.empty-icon {
+  font-size: 1.75rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   16. Mobile bottom navigation
+   -------------------------------------------------------------------------- */
+.bottom-nav {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: saturate(180%) blur(12px);
+    border-top: var(--bottom-nav-border) solid var(--border);
+    /* clear the iOS home indicator */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @supports not (backdrop-filter: blur(1px)) {
+    .bottom-nav {
+      background: var(--bg);
+    }
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: var(--bottom-nav-h);
+    padding: 0.4rem 0.25rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    transition: color var(--dur) var(--ease);
+  }
+  .bottom-nav-item i {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+  .bottom-nav-item[aria-current="page"] {
+    color: var(--accent);
+  }
+  .bottom-nav-item:active {
+    background: var(--bg-subtle);
+  }
+
+  /* keep content clear of the fixed bar */
+  body.has-bottom-nav {
+    padding-bottom: var(--bottom-nav-space);
+  }
+  .site-footer {
+    margin-bottom: var(--bottom-nav-space);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   17. Footer
+   -------------------------------------------------------------------------- */
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: var(--space-6) 0;
+  margin-top: var(--space-9);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+/* --------------------------------------------------------------------------
+   18. Motion — entrances, and the reduced-motion opt-out
+   -------------------------------------------------------------------------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: reveal var(--dur-slow) var(--ease) forwards;
+}
+.reveal-1 { animation-delay: 40ms; }
+.reveal-2 { animation-delay: 80ms; }
+.reveal-3 { animation-delay: 120ms; }
+.reveal-4 { animation-delay: 160ms; }
+
+@keyframes reveal {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Honour the OS setting: kill motion, keep everything legible */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .card-link:hover {
+    transform: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   19. Utilities
+   -------------------------------------------------------------------------- */
+.hstack-q {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.vstack-q {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.truncate-1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* Skip link — first tab stop */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  z-index: 1060;
+}
+.skip-link:focus {
+  left: var(--space-4);
+  top: var(--space-2);
+  padding: 0.5rem 0.9rem;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--radius-sm);
+}
+
+/* Wide content must scroll inside itself, never the page body */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
