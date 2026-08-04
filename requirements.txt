@@ -9,6 +9,12 @@ django-ratelimit==4.1.0
 dj-database-url==3.1.2
 psycopg[binary]==3.3.4
 
+# Production server + static files (Railway/Heroku-style deploy — no nginx
+# in front of the app). runserver and Django's dev static() helper (both
+# DEBUG-only) cover local dev; these take over when DEBUG=False.
+gunicorn==26.0.0
+whitenoise==6.12.0
+
 # Test-only. django-ratelimit windows by real epoch time (see
 # django_ratelimit.core._get_window), so tests that fire a burst of
 # requests and assert the Nth one gets rate-limited need frozen time to

@@ -40,6 +40,12 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Serves STATIC_ROOT directly from the app process — no nginx/CDN in
+    # front on a platform like Railway, so without this, DEBUG=False means
+    # no CSS/JS/icons at all (Django's own dev-only static() helper is
+    # already gated off in urls.py). Must sit right after SecurityMiddleware
+    # per whitenoise's own docs, before anything that might redirect.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -108,6 +114,23 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Compressed + cache-busting (hashed filenames) static storage in production;
+# plain storage in dev, since the manifest backend requires collectstatic to
+# have already run and fails hard on a missing file — friction dev doesn't
+# need.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': (
+            'whitenoise.storage.CompressedManifestStaticFilesStorage'
+            if not DEBUG else
+            'django.contrib.staticfiles.storage.StaticFilesStorage'
+        ),
+    },
+}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
