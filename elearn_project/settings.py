@@ -150,6 +150,13 @@ CACHES = {
     }
 }
 
+# django-ratelimit's key='ip' would otherwise read REMOTE_ADDR, which behind
+# any reverse proxy (Railway included) is the proxy's own IP — collapsing
+# every visitor into one shared bucket. See core/ratelimit.py's docstring
+# for the full reasoning and the (genuinely conflicting) platform guidance
+# behind this specific choice of header.
+RATELIMIT_IP_META_KEY = 'core.ratelimit.get_client_ip'
+
 # ─── Upload limits ─────────────────────────────────────────────────────────────
 # Hard ceilings independent of the per-field validators in core.models, so an
 # oversized request is rejected before it is buffered to disk.

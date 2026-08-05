@@ -20,6 +20,7 @@ from .models import (
     LessonProgress, Quiz, QuizAttempt, Comment
 )
 from .forms import RegisterForm, CommentForm
+from .ratelimit import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def register_view(request):
         return redirect('dashboard')
     if getattr(request, 'limited', False):
         logger.warning(
-            'Registration rate limit hit from %s', request.META.get('REMOTE_ADDR'),
+            'Registration rate limit hit from %s', get_client_ip(request),
         )
         messages.error(
             request,
@@ -70,7 +71,7 @@ def login_view(request):
     if getattr(request, 'limited', False):
         logger.warning(
             'Login rate limit hit from %s (username attempted: %r)',
-            request.META.get('REMOTE_ADDR'), request.POST.get('username'),
+            get_client_ip(request), request.POST.get('username'),
         )
         messages.error(request, 'Too many login attempts. Please wait a minute and try again.')
         return render(request, 'core/login.html', {'form': AuthenticationForm()}, status=429)
