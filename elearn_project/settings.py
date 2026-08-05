@@ -173,6 +173,29 @@ RATELIMIT_IP_META_KEY = 'core.ratelimit.get_client_ip'
 LOGIN_RATE_LIMIT = config('LOGIN_RATE_LIMIT', default='20/m')
 REGISTRATION_RATE_LIMIT = config('REGISTRATION_RATE_LIMIT', default='30/h')
 
+# ─── Google OAuth ──────────────────────────────────────────────────────────────
+# See core/google_oauth.py for the flow itself and README.md for the exact
+# Google Cloud Console setup steps. All three blank by default so a fresh
+# checkout without Google credentials configured just doesn't show the
+# "Continue with Google" button — the rest of the app is unaffected either
+# way (see GOOGLE_OAUTH_CONFIGURED below).
+GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID', default='')
+GOOGLE_OAUTH_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET', default='')
+# Deliberately a fixed, explicitly configured value rather than built from
+# request.build_absolute_uri() at request time: Google itself validates this
+# against what's registered on the OAuth client, but deriving it from the
+# incoming request would mean trusting the Host header for something
+# security-relevant, which is bad practice even when something else also
+# catches the mistake. Must exactly match a redirect URI registered in
+# Google Cloud Console — e.g. http://127.0.0.1:8000/accounts/google/callback/
+# for local dev, https://<your-domain>/accounts/google/callback/ in
+# production.
+GOOGLE_OAUTH_REDIRECT_URI = config('GOOGLE_OAUTH_REDIRECT_URI', default='')
+
+GOOGLE_OAUTH_CONFIGURED = bool(
+    GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET and GOOGLE_OAUTH_REDIRECT_URI
+)
+
 # ─── Upload limits ─────────────────────────────────────────────────────────────
 # Hard ceilings independent of the per-field validators in core.models, so an
 # oversized request is rejected before it is buffered to disk.

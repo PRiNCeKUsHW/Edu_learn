@@ -126,7 +126,8 @@ elearn_project/
 │   ├── models.py               # All database models
 │   ├── views.py                # All views
 │   ├── urls.py                 # URL patterns
-│   ├── forms.py                # RegisterForm, CommentForm
+│   ├── forms.py                # RegisterForm, CommentForm, GoogleCompleteProfileForm
+│   ├── google_oauth.py         # Google OAuth 2.0 mechanics (auth URL, token exchange, verification)
 │   └── admin.py                # Admin panel configuration
 │
 ├── templates/
@@ -135,6 +136,8 @@ elearn_project/
 │       ├── landing.html        # Public homepage
 │       ├── login.html
 │       ├── register.html
+│       ├── google_complete_profile.html  # New Google user: pick username + password
+│       ├── google_link_confirm.html      # Existing password user: confirm linking Google
 │       ├── dashboard.html      # Subject overview + progress
 │       ├── class_list.html     # Class level selector
 │       ├── chapter_list.html   # Chapter accordion with lessons
@@ -166,6 +169,10 @@ elearn_project/
 | `/learn/<subject>/class-<N>/<chapter>/<lesson>/` | `lesson_detail` | Video player |
 | `/lesson/<id>/mark-watched/` | `mark_watched` | AJAX toggle (POST) |
 | `/quiz/<chapter>/` | `quiz_view` | MCQ quiz + result |
+| `/accounts/google/login/` | `google_login_view` | Redirects to Google |
+| `/accounts/google/callback/` | `google_callback_view` | Google redirects back here |
+| `/accounts/google/complete-profile/` | `google_complete_profile_view` | New-user username/password step |
+| `/accounts/google/link/` | `google_link_confirm_view` | Link Google to an existing password account |
 
 ---
 
@@ -264,6 +271,69 @@ views) is unaffected by the database backend.
 
 SQLite stays fully supported for local development either way — just don't
 set `DATABASE_URL` and nothing changes from how the project has always run.
+
+---
+
+## Google Sign-In setup
+
+"Continue with Google" is **off by default** — with no credentials configured,
+the button simply doesn't render and `/accounts/google/...` routes redirect
+back to the login page with a friendly message. Nothing else about the app
+changes. To turn it on:
+
+**1. Create an OAuth client in Google Cloud Console**
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com/) and
+   create a project (or pick an existing one).
+2. **APIs & Services → OAuth consent screen** — configure it (External is
+   fine for most cases), add your support email, and add `email`,
+   `profile`, `openid` as scopes if prompted.
+3. **APIs & Services → Credentials → Create Credentials → OAuth client ID.**
+4. Application type: **Web application**.
+5. Under **Authorized redirect URIs**, add the *exact* callback URL for each
+   environment you'll use — Google rejects any redirect that isn't listed
+   here character-for-character:
+   - Local dev: `http://127.0.0.1:8000/accounts/google/callback/`
+   - Production (e.g. Railway): `https://your-domain.example/accounts/google/callback/`
+6. Save, then copy the **Client ID** and **Client secret** it generates.
+
+**2. Set the three environment variables** (in `.env` for local dev, or your
+platform's environment/secrets panel in production — e.g. Railway's
+Variables tab):
+
+```env
+GOOGLE_OAUTH_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+GOOGLE_OAUTH_REDIRECT_URI=http://127.0.0.1:8000/accounts/google/callback/
+```
+
+`GOOGLE_OAUTH_REDIRECT_URI` must match one of the redirect URIs registered in
+step 1 exactly (scheme, host, port, trailing slash). In production, set it to
+the `https://…/accounts/google/callback/` value for that domain — it is a
+fixed, explicitly-configured value rather than derived from the incoming
+request, so a forged `Host` header can never redirect the OAuth flow
+somewhere else.
+
+**3. Restart the app.** All three variables must be set for the feature to
+activate (`settings.GOOGLE_OAUTH_CONFIGURED`) — the button then appears on
+`/register/` and `/login/`, and the four `/accounts/google/...` routes go
+live.
+
+**4. Never commit real credentials.** `.env` is gitignored; only ever put
+placeholder/example values in anything that gets committed
+(`GOOGLE_OAUTH_CLIENT_SECRET` in particular must stay out of source control
+and out of any client-side code — it's used exclusively in the server-side
+token exchange in `core/google_oauth.py`).
+
+**How it behaves once configured**, for reference:
+- A Google email that's new to the app → short "complete your profile" step
+  (username + password; email/name come from Google, already verified) →
+  account created → logged in.
+- A Google email already linked to Google → logs in immediately.
+- A Google email that matches an existing password-based account → asks
+  once whether to link Google to it; declining leaves the password login
+  untouched.
+- Unverified Google emails are rejected outright.
 
 ---
 

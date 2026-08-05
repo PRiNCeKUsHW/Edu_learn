@@ -15,6 +15,12 @@ psycopg[binary]==3.3.4
 gunicorn==26.0.0
 whitenoise==6.12.0
 
+# Google OAuth sign-in/sign-up (see core/google_oauth.py). requests does the
+# server-side authorization-code -> token exchange; google-auth verifies the
+# returned ID token's signature against Google's own public keys.
+google-auth==2.56.2
+requests==2.34.2
+
 # Test-only. django-ratelimit windows by real epoch time (see
 # django_ratelimit.core._get_window), so tests that fire a burst of
 # requests and assert the Nth one gets rate-limited need frozen time to

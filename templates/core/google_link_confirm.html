@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Link your Google account — EduLearn{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="max-width: 480px; padding-top: var(--space-8); padding-bottom: var(--space-8)">
+
+  <header style="text-align: center; margin-bottom: var(--space-6)">
+    <h1 class="t-h1" style="font-size: 1.75rem; margin-bottom: 0.35rem">Link your Google account?</h1>
+    <p class="t-meta" style="margin-bottom: 0">
+      An account already exists for <strong style="color: var(--text)">{{ email }}</strong>. Link it to your
+      Google account so you can sign in with either your password or Google from now on.
+    </p>
+  </header>
+
+  <div class="panel-lg reveal reveal-1">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <button class="btn btn-accent btn-lg-q btn-block-q" type="submit" name="confirm" value="1">
+        <i class="bi bi-link-45deg" aria-hidden="true"></i>
+        Yes, link my Google account
+      </button>
+      <button class="btn btn-quiet btn-lg-q btn-block-q" type="submit" style="margin-top: var(--space-3)">
+        No, take me back
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

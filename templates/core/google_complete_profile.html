@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Complete your profile — EduLearn{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="max-width: 520px; padding-top: var(--space-8); padding-bottom: var(--space-8)">
+
+  <header style="text-align: center; margin-bottom: var(--space-6)">
+    <h1 class="t-h1" style="font-size: 1.75rem; margin-bottom: 0.35rem">Almost there</h1>
+    <p class="t-meta" style="margin-bottom: 0">
+      Signed in with Google as <strong style="color: var(--text)">{{ email }}</strong>. Pick a username and
+      password to finish creating your account.
+    </p>
+  </header>
+
+  <div class="panel-lg reveal reveal-1">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger" style="margin-bottom: var(--space-4)" role="alert">
+        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        <span>{{ form.non_field_errors.0 }}</span>
+      </div>
+      {% endif %}
+
+      <div class="field">
+        <label class="field-label" for="id_username">Username</label>
+        <input class="input {% if form.username.errors %}is-invalid{% endif %}" type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" autocomplete="username" autofocus required />
+        {% if form.username.errors %}
+        <div class="field-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ form.username.errors.0 }}</div>
+        {% else %}
+        <div class="field-hint">Letters, digits and @ . + - _ only.</div>
+        {% endif %}
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="id_password1">Password</label>
+        <input class="input {% if form.password1.errors %}is-invalid{% endif %}" type="password" name="password1" id="id_password1" autocomplete="new-password" required />
+        {% if form.password1.errors %}
+        <div class="field-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ form.password1.errors.0 }}</div>
+        {% else %}
+        <div class="field-hint">At least 8 characters, and not a common password.</div>
+        {% endif %}
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="id_password2">Confirm password</label>
+        <input class="input {% if form.password2.errors %}is-invalid{% endif %}" type="password" name="password2" id="id_password2" autocomplete="new-password" required />
+        {% if form.password2.errors %}
+        <div class="field-error"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>{{ form.password2.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <button class="btn btn-accent btn-lg-q btn-block-q" type="submit" style="margin-top: var(--space-4)">Create account</button>
+    </form>
+  </div>
+
+  <p class="t-meta" style="text-align: center; margin-top: var(--space-5)">
+    Not you? <a href="{% url 'login' %}" style="font-weight: 600">Cancel and go back</a>
+  </p>
+
+</div>
+{% endblock %}
