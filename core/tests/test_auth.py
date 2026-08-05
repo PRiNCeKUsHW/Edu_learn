@@ -14,10 +14,12 @@ so a burst of requests that happens to straddle a window boundary can
 under-count — rare, but a real flake source under --shuffle. Frozen time
 removes it entirely rather than just making it less likely.
 """
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
+from django_ratelimit.core import _split_rate
 from freezegun import freeze_time
 
 from core.models import Chapter, ClassLevel, Lesson, Subject
@@ -56,8 +58,12 @@ class LoginTests(TestCase):
         self.assertRedirects(response, reverse('dashboard'))
 
     @freeze_time('2026-01-01 12:00:00')
-    def test_login_rate_limited_after_five_attempts_per_minute(self):
-        for _ in range(5):
+    def test_login_rate_limited_after_configured_attempts_per_window(self):
+        # Derived from settings.LOGIN_RATE_LIMIT rather than hardcoded, so
+        # this test can't silently drift out of sync with the real limit —
+        # see settings.py for why it's sized well above a literal 5.
+        limit, _ = _split_rate(settings.LOGIN_RATE_LIMIT)
+        for _ in range(limit):
             response = self.client.post(reverse('login'), {
                 'username': 'student', 'password': 'wrong-password',
             })
@@ -121,8 +127,11 @@ class RegistrationTests(TestCase):
         self.assertFalse(User.objects.filter(username='newstudent').exists())
 
     @freeze_time('2026-01-01 12:00:00')
-    def test_registration_rate_limited_after_five_attempts_per_hour(self):
-        for i in range(5):
+    def test_registration_rate_limited_after_configured_attempts_per_window(self):
+        # Derived from settings.REGISTRATION_RATE_LIMIT — see settings.py
+        # for why it's sized to comfortably clear a full classroom.
+        limit, _ = _split_rate(settings.REGISTRATION_RATE_LIMIT)
+        for i in range(limit):
             self.client.post(reverse('register'), {
                 'first_name': 'New', 'last_name': 'Student',
                 'username': f'ratecheck{i}', 'email': f'rc{i}@example.com',

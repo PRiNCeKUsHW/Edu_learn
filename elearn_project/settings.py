@@ -157,6 +157,20 @@ CACHES = {
 # behind this specific choice of header.
 RATELIMIT_IP_META_KEY = 'core.ratelimit.get_client_ip'
 
+# Sized for this app's actual audience, not a generic default: this is a
+# school platform, and a classroom on shared WiFi is one real public IP
+# with many real students behind it — that's normal NAT geometry, not a
+# bug, and correct per-visitor IP extraction (above) can't split it apart.
+# 5/hour for registration was tight enough that a teacher enrolling a
+# class of 25-30 in one sitting would legitimately hit it; 5/minute for
+# login was tight enough that "everyone log in now" at the start of class
+# could too. Both are raised to comfortably clear a full classroom while
+# still bounding pure automation (a script trying hundreds of signups or
+# password guesses in the same window). Overridable per-deployment without
+# a code change if a given school's numbers warrant it.
+LOGIN_RATE_LIMIT = config('LOGIN_RATE_LIMIT', default='20/m')
+REGISTRATION_RATE_LIMIT = config('REGISTRATION_RATE_LIMIT', default='30/h')
+
 # ─── Upload limits ─────────────────────────────────────────────────────────────
 # Hard ceilings independent of the per-field validators in core.models, so an
 # oversized request is rejected before it is buffered to disk.

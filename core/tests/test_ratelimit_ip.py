@@ -3,11 +3,13 @@ every visitor behind a reverse proxy as one shared IP (see the module's
 own docstring for the full reasoning). Split from test_auth.py: this is
 about the extraction function itself, not the views that use it.
 """
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.http import HttpRequest
 from django.test import TestCase
 from django.urls import reverse
+from django_ratelimit.core import _split_rate
 from freezegun import freeze_time
 
 from core.ratelimit import get_client_ip
@@ -58,7 +60,8 @@ class RateLimitProxyDifferentiationTests(TestCase):
 
     @freeze_time('2026-01-01 12:00:00')
     def test_one_visitor_being_rate_limited_does_not_affect_another(self):
-        for _ in range(5):
+        limit, _ = _split_rate(settings.LOGIN_RATE_LIMIT)
+        for _ in range(limit):
             response = self.client.post(
                 reverse('login'), {'username': 'student', 'password': 'wrong-password'},
                 HTTP_X_REAL_IP='203.0.113.10',

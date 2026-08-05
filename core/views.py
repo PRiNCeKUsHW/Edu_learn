@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 
 from django.shortcuts import render, get_object_or_404, redirect
+from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
@@ -41,7 +42,7 @@ def landing(request):
 # many IPs. block=False (not django-ratelimit's default) is deliberate: it
 # lets the view run and produce a normal, on-brand error message + 429
 # instead of a bare 403 from an uncaught Ratelimited exception.
-@ratelimit(key='ip', rate='5/h', method='POST', block=False)
+@ratelimit(key='ip', rate=settings.REGISTRATION_RATE_LIMIT, method='POST', block=False)
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -64,7 +65,7 @@ def register_view(request):
     return render(request, 'core/register.html', {'form': form})
 
 
-@ratelimit(key='ip', rate='5/m', method='POST', block=False)
+@ratelimit(key='ip', rate=settings.LOGIN_RATE_LIMIT, method='POST', block=False)
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
