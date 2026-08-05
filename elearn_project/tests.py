@@ -1,8 +1,14 @@
 """Settings-level tests — not app behaviour, but config logic worth locking
 in without needing a live database of either kind.
 """
+import tempfile
+from pathlib import Path
+from unittest import mock
+
 import dj_database_url
 from django.test import SimpleTestCase
+
+from .logging_config import ensure_log_dir
 
 
 class DatabaseUrlParsingTests(SimpleTestCase):
@@ -32,3 +38,44 @@ class DatabaseUrlParsingTests(SimpleTestCase):
         DATABASE_URL could point at SQLite too if someone wanted that."""
         parsed = dj_database_url.parse('sqlite:///./test.db')
         self.assertEqual(parsed['ENGINE'], 'django.db.backends.sqlite3')
+
+
+class EnsureLogDirTests(SimpleTestCase):
+    """settings.py only wires up file logging when this returns True — the
+    fix for LOG_DIR.mkdir() crashing the whole app at import time on a
+    filesystem that turns out not to be writable (see the function's own
+    docstring). Uses real temp directories rather than mocking Path.mkdir
+    everywhere, since the point is proving real filesystem calls behave as
+    expected, not just that the function calls mkdir."""
+
+    def test_creates_directory_and_returns_true(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / 'logs'
+            self.assertTrue(ensure_log_dir(target))
+            self.assertTrue(target.is_dir())
+
+    def test_creates_missing_parents_too(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / 'nested' / 'logs'
+            self.assertTrue(ensure_log_dir(target))
+            self.assertTrue(target.is_dir())
+
+    def test_is_idempotent_when_directory_already_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / 'logs'
+            target.mkdir()
+            self.assertTrue(ensure_log_dir(target))
+
+    def test_returns_false_instead_of_raising_when_path_is_a_file(self):
+        """The realistic version of "can't create this directory" —
+        something else already occupies that path."""
+        with tempfile.TemporaryDirectory() as tmp:
+            blocked = Path(tmp) / 'logs'
+            blocked.write_text('not a directory')
+            self.assertFalse(ensure_log_dir(blocked))
+
+    def test_returns_false_instead_of_raising_on_permission_error(self):
+        """Simulates a genuinely read-only filesystem — the scenario the
+        function exists for — without needing an actual read-only mount."""
+        with mock.patch.object(Path, 'mkdir', side_effect=PermissionError('Read-only file system')):
+            self.assertFalse(ensure_log_dir(Path('/some/path')))

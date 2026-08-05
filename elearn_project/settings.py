@@ -4,6 +4,8 @@ import dj_database_url
 from decouple import Csv, config
 from django.core.exceptions import ImproperlyConfigured
 
+from .logging_config import ensure_log_dir
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-fallback-key-change-in-production')
@@ -253,9 +255,17 @@ LOGGING = {
     },
 }
 
-if not DEBUG:
+if not DEBUG and ensure_log_dir(BASE_DIR / 'logs'):
+    # Guarded by ensure_log_dir() rather than creating the directory inline:
+    # most hosts (Railway included) have a writable runtime filesystem, but
+    # files written outside an explicitly mounted volume don't survive a
+    # redeploy there either way — console output is what Railway's own
+    # dashboard actually captures durably. These files are a same-box,
+    # between-restarts convenience on top of that, not the durable record;
+    # if the directory can't be created at all (a genuinely read-only
+    # container root, a permissions problem, a full disk), degrade to
+    # console-only instead of crashing the whole app at import time.
     LOG_DIR = BASE_DIR / 'logs'
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     LOGGING['handlers'].update({
         'file': {

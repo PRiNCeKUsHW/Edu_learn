@@ -267,6 +267,29 @@ set `DATABASE_URL` and nothing changes from how the project has always run.
 
 ---
 
+## Logging in production
+
+Outside `DEBUG`, the app writes to `logs/edulearn.log`, `logs/errors.log`,
+and `logs/security.log` (rotating, capped size) in addition to the console.
+On Railway and most container platforms, that directory is writable but
+**ephemeral** — anything not on a mounted Volume is wiped on every redeploy,
+the same as `media/` uploads (see the PostgreSQL section above for the
+general pattern). If the directory can't be created at all — a genuinely
+read-only filesystem, a permissions problem — the app falls back to
+console-only logging automatically rather than failing to start.
+
+In practice this means:
+- **Console output is the durable record on Railway** — it's what shows up
+  in Railway's own Logs tab, and it survives redeploys because Railway
+  captures it independently of the app's filesystem.
+- The local files are a same-box, between-restarts convenience layered on
+  top of that — useful for `tail`-ing recent activity in a shell on the
+  box, not a substitute for the platform's own log view.
+- If you want the rotating files to actually persist across deploys, mount
+  a Railway Volume at `logs/`.
+
+---
+
 ## License
 
 MIT — free to use for educational purposes.
