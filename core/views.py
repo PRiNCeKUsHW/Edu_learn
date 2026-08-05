@@ -19,7 +19,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
-from .forms import CommentForm, GoogleCompleteProfileForm, RegisterForm
+from .forms import CommentForm, GoogleCompleteProfileForm
 from .google_oauth import (
     GoogleOAuthError, build_authorization_url, exchange_code_for_claims, generate_state,
 )
@@ -42,38 +42,16 @@ def landing(request):
     return render(request, 'core/landing.html')
 
 
-# Keyed by IP rather than username: an unauthenticated POST has no user yet,
-# and keying by the submitted username would let an attacker lock a *victim*
-# out by deliberately failing logins/registrations against their account from
-# many IPs. block=False (not django-ratelimit's default) is deliberate: it
-# lets the view run and produce a normal, on-brand error message + 429
-# instead of a bare 403 from an uncaught Ratelimited exception.
-@ratelimit(key='ip', rate=settings.REGISTRATION_RATE_LIMIT, method='POST', block=False)
+# New accounts are created through Google only (see google_complete_profile_view)
+# -- there is deliberately no username/email/password form or POST handler
+# here anymore. Signup abuse is bounded on the Google side instead: by
+# REGISTRATION_RATE_LIMIT on google_complete_profile_view, the actual
+# account-creation endpoint.
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
-    if getattr(request, 'limited', False):
-        logger.warning(
-            'Registration rate limit hit from %s', get_client_ip(request),
-        )
-        messages.error(
-            request,
-            'Too many signup attempts from this network. Please try again in a while.',
-        )
-        return render(
-            request, 'core/register.html',
-            {'form': RegisterForm(), 'google_oauth_configured': settings.GOOGLE_OAUTH_CONFIGURED},
-            status=429,
-        )
-
-    form = RegisterForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
-        user = form.save()
-        login(request, user)
-        messages.success(request, f'Welcome, {user.first_name}! Your account has been created.')
-        return redirect('dashboard')
     return render(request, 'core/register.html', {
-        'form': form, 'google_oauth_configured': settings.GOOGLE_OAUTH_CONFIGURED,
+        'google_oauth_configured': settings.GOOGLE_OAUTH_CONFIGURED,
     })
 
 

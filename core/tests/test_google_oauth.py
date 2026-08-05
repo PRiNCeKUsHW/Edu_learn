@@ -99,7 +99,12 @@ class GoogleOAuthMechanicsTests(TestCase):
 
 
 class GoogleLoginViewTests(TestCase):
+    @override_settings(GOOGLE_OAUTH_CONFIGURED=False)
     def test_redirects_to_login_when_not_configured(self):
+        # Explicitly forced False rather than relying on the ambient
+        # default: a developer's local .env may have real credentials set
+        # (e.g. for manual browser testing), which would otherwise make
+        # settings.GOOGLE_OAUTH_CONFIGURED True even without this override.
         response = self.client.get(reverse('google_login'))
         self.assertRedirects(response, reverse('login'))
 
@@ -438,21 +443,13 @@ class GoogleLinkConfirmViewTests(TestCase):
 
 class RegressionTests(TestCase):
     """Confirms the Google OAuth feature doesn't disturb ordinary
-    email/password signup and login, which live entirely outside these new
-    views/URLs and are otherwise covered in test_auth.py."""
+    email/password login for accounts that already have a password
+    (created directly, or via the Google complete-profile flow) --
+    signup itself is Google-only by design, covered in test_auth.py's
+    RegistrationTests."""
 
     def setUp(self):
         cache.clear()
-
-    def test_password_registration_unaffected_by_google_oauth_feature(self):
-        response = self.client.post(reverse('register'), {
-            'first_name': 'Plain', 'last_name': 'Student',
-            'username': 'plainstudent', 'email': 'plain@example.com',
-            'password1': 'a-strong-passw0rd', 'password2': 'a-strong-passw0rd',
-        })
-        self.assertRedirects(response, reverse('dashboard'))
-        user = User.objects.get(username='plainstudent')
-        self.assertFalse(GoogleAccount.objects.filter(user=user).exists())
 
     def test_password_login_unaffected_by_google_oauth_feature(self):
         User.objects.create_user(username='plain', password='pass12345')

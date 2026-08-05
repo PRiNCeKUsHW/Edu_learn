@@ -16,7 +16,7 @@ Focused on Mathematics for Classes 6–12, scalable to any subject.
 
 ## Features
 
-- 🔐 User authentication (register, login, logout)
+- 🔐 User authentication (Google sign-up, email/password + Google login, logout)
 - 📚 Curriculum: Class Level → Subject → Chapter → Lesson
 - 🎬 YouTube video embed per lesson
 - ✅ "Mark as Watched" with AJAX (no page reload)
@@ -126,7 +126,7 @@ elearn_project/
 │   ├── models.py               # All database models
 │   ├── views.py                # All views
 │   ├── urls.py                 # URL patterns
-│   ├── forms.py                # RegisterForm, CommentForm, GoogleCompleteProfileForm
+│   ├── forms.py                # CommentForm, GoogleCompleteProfileForm
 │   ├── google_oauth.py         # Google OAuth 2.0 mechanics (auth URL, token exchange, verification)
 │   └── admin.py                # Admin panel configuration
 │
@@ -160,7 +160,7 @@ elearn_project/
 | URL | View | Description |
 |-----|------|-------------|
 | `/` | `landing` | Public homepage |
-| `/register/` | `register_view` | Registration form |
+| `/register/` | `register_view` | Google sign-up entry point (no password form) |
 | `/login/` | `login_view` | Login form |
 | `/logout/` | `logout_view` | Logout |
 | `/dashboard/` | `dashboard` | Subject cards + progress |
@@ -276,10 +276,15 @@ set `DATABASE_URL` and nothing changes from how the project has always run.
 
 ## Google Sign-In setup
 
-"Continue with Google" is **off by default** — with no credentials configured,
-the button simply doesn't render and `/accounts/google/...` routes redirect
-back to the login page with a friendly message. Nothing else about the app
-changes. To turn it on:
+**New account signup is Google-only** — `/register/` has no username/email/
+password form; "Continue with Google" is the only way to create an account.
+Existing password-based accounts can still log in normally on `/login/`.
+
+Without credentials configured, `/register/` shows a "sign-up temporarily
+unavailable" message instead of the button, and `/accounts/google/...`
+routes redirect back to login with a friendly message — nothing else about
+the app breaks, but no new accounts can be created until it's set up. To
+turn it on:
 
 **1. Create an OAuth client in Google Cloud Console**
 
@@ -316,7 +321,8 @@ somewhere else.
 
 **3. Restart the app.** All three variables must be set for the feature to
 activate (`settings.GOOGLE_OAUTH_CONFIGURED`) — the button then appears on
-`/register/` and `/login/`, and the four `/accounts/google/...` routes go
+`/register/` (the only way to sign up) and `/login/` (an extra option
+alongside username/password), and the four `/accounts/google/...` routes go
 live.
 
 **4. Never commit real credentials.** `.env` is gitignored; only ever put

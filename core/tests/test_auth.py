@@ -79,74 +79,33 @@ class LoginTests(TestCase):
 
 
 class RegistrationTests(TestCase):
+    """New accounts are created through Google only (see
+    test_google_oauth.py::GoogleCompleteProfileViewTests for that path) --
+    /register/ itself just shows the "Continue with Google" entry point and
+    accepts no form data of its own, by design."""
+
     def setUp(self):
         cache.clear()
 
-    def test_valid_registration_creates_user_and_logs_in(self):
+    def test_register_page_has_no_signup_form(self):
+        response = self.client.get(reverse('register'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '<form')
+
+    def test_posting_account_details_directly_does_not_create_a_user(self):
         response = self.client.post(reverse('register'), {
             'first_name': 'New', 'last_name': 'Student',
             'username': 'newstudent', 'email': 'new@example.com',
             'password1': 'a-strong-passw0rd', 'password2': 'a-strong-passw0rd',
         })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(username='newstudent').exists())
+
+    def test_already_authenticated_user_is_redirected_away_from_register(self):
+        user = User.objects.create_user(username='student', password='pass12345')
+        self.client.force_login(user)
+        response = self.client.get(reverse('register'))
         self.assertRedirects(response, reverse('dashboard'))
-        user = User.objects.get(username='newstudent')
-        self.assertEqual(user.email, 'new@example.com')
-        # Registration logs the new user in immediately.
-        dash = self.client.get(reverse('dashboard'))
-        self.assertEqual(dash.status_code, 200)
-
-    def test_duplicate_username_is_rejected(self):
-        User.objects.create_user(username='taken', password='pass12345')
-        response = self.client.post(reverse('register'), {
-            'first_name': 'New', 'last_name': 'Student',
-            'username': 'taken', 'email': 'new@example.com',
-            'password1': 'a-strong-passw0rd', 'password2': 'a-strong-passw0rd',
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.context['form'].is_valid())
-        self.assertEqual(User.objects.filter(username='taken').count(), 1)
-
-    def test_mismatched_passwords_are_rejected(self):
-        response = self.client.post(reverse('register'), {
-            'first_name': 'New', 'last_name': 'Student',
-            'username': 'newstudent', 'email': 'new@example.com',
-            'password1': 'a-strong-passw0rd', 'password2': 'something-else',
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.context['form'].is_valid())
-        self.assertFalse(User.objects.filter(username='newstudent').exists())
-
-    def test_weak_password_is_rejected(self):
-        response = self.client.post(reverse('register'), {
-            'first_name': 'New', 'last_name': 'Student',
-            'username': 'newstudent', 'email': 'new@example.com',
-            'password1': '123', 'password2': '123',
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.context['form'].is_valid())
-        self.assertFalse(User.objects.filter(username='newstudent').exists())
-
-    @freeze_time('2026-01-01 12:00:00')
-    def test_registration_rate_limited_after_configured_attempts_per_window(self):
-        # Derived from settings.REGISTRATION_RATE_LIMIT — see settings.py
-        # for why it's sized to comfortably clear a full classroom.
-        limit, _ = _split_rate(settings.REGISTRATION_RATE_LIMIT)
-        for i in range(limit):
-            self.client.post(reverse('register'), {
-                'first_name': 'New', 'last_name': 'Student',
-                'username': f'ratecheck{i}', 'email': f'rc{i}@example.com',
-                'password1': 'x', 'password2': 'x',  # deliberately invalid, doesn't matter here
-            })
-        with self.assertLogs('core.views', level='WARNING') as logs:
-            limited = self.client.post(reverse('register'), {
-                'first_name': 'New', 'last_name': 'Student',
-                'username': 'onemore', 'email': 'onemore@example.com',
-                'password1': 'a-strong-passw0rd', 'password2': 'a-strong-passw0rd',
-            })
-        self.assertEqual(limited.status_code, 429)
-        self.assertContains(limited, 'Too many signup attempts', status_code=429)
-        self.assertFalse(User.objects.filter(username='onemore').exists())
-        self.assertTrue(any('Registration rate limit hit' in message for message in logs.output))
 
 
 class LogoutTests(TestCase):

@@ -141,7 +141,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ─── Cache ─────────────────────────────────────────────────────────────────────
 # Backs django-ratelimit's hit counters (see core/views.py: login_view,
-# register_view, lesson_detail). LocMemCache is fine for one process, but it's
+# google_complete_profile_view, lesson_detail). LocMemCache is fine for one process, but it's
 # per-process memory — run more than one gunicorn/uWSGI worker and each worker
 # enforces its own limit independently instead of a shared one, so the real
 # limit becomes (configured rate) x (worker count). Point this at Redis or
