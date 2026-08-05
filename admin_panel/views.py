@@ -7,7 +7,6 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
@@ -202,11 +201,6 @@ class ChapterCreateView(AdminFormMixin, SuccessMessageMixin, CreateView):
     back_url_name = 'ap:chapter_list'
     success_message = 'Chapter added successfully.'
 
-    def form_valid(self, form):
-        if not form.instance.slug:
-            form.instance.slug = slugify(form.instance.title)
-        return super().form_valid(form)
-
 
 class ChapterUpdateView(AdminFormMixin, SuccessMessageMixin, UpdateView):
     model = Chapter
@@ -218,14 +212,6 @@ class ChapterUpdateView(AdminFormMixin, SuccessMessageMixin, UpdateView):
 
     def get_title(self):
         return f'Edit Chapter: {self.object.title}'
-
-    def form_valid(self, form):
-        # ChapterForm.slug is required=False (see admin_panel/forms.py) so
-        # the "auto-fill from title if left blank" promise in its help text
-        # holds on edit too, not just on create.
-        if not form.instance.slug:
-            form.instance.slug = slugify(form.instance.title)
-        return super().form_valid(form)
 
 
 class ChapterDeleteView(AdminDeleteMixin, DeleteView):
@@ -286,11 +272,6 @@ class LessonCreateView(AdminFormMixin, SuccessMessageMixin, CreateView):
         'E.g. for https://youtube.com/watch?v=abc123, enter abc123'
     )
 
-    def form_valid(self, form):
-        if not form.instance.slug:
-            form.instance.slug = slugify(form.instance.title)
-        return super().form_valid(form)
-
 
 class LessonUpdateView(AdminFormMixin, SuccessMessageMixin, UpdateView):
     model = Lesson
@@ -302,14 +283,6 @@ class LessonUpdateView(AdminFormMixin, SuccessMessageMixin, UpdateView):
 
     def get_title(self):
         return f'Edit Lesson: {self.object.title}'
-
-    def form_valid(self, form):
-        # See ChapterUpdateView.form_valid — LessonForm.slug is also
-        # required=False, so the same "auto-fill if left blank" fallback
-        # applies on edit as well as create.
-        if not form.instance.slug:
-            form.instance.slug = slugify(form.instance.title)
-        return super().form_valid(form)
 
 
 class LessonDeleteView(AdminDeleteMixin, DeleteView):

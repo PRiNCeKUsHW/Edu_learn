@@ -102,8 +102,17 @@ class SubjectCRUDTests(TestCase):
 
 class ChapterSlugAutofillTests(TestCase):
     """Chapter.slug has no blank=True, so ChapterForm overrides it to
-    required=False and the view fills it in from the title when left
-    blank — on *both* create and edit (forms.py + views.py)."""
+    required=False and fills it in from the title, in Meta.clean(), when
+    left blank — on *both* create and edit.
+
+    Doing this in clean() rather than in the view's form_valid() (the
+    original implementation) is itself the fix for a real bug: ModelForm
+    validates unique_together in _post_clean(), immediately after clean()
+    returns. Generating the slug afterward, in the view, meant a collision
+    between two auto-generated slugs skipped that check entirely and hit
+    the database as a raw IntegrityError (an unhandled 500) instead of the
+    normal "already exists" form error every other duplicate hits.
+    """
 
     def setUp(self):
         self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
@@ -139,6 +148,36 @@ class ChapterSlugAutofillTests(TestCase):
         })
         self.assertRedirects(response, reverse('ap:chapter_list'))
         self.assertEqual(Chapter.objects.get(title='Whole Numbers').slug, 'wn')
+
+    def test_colliding_auto_generated_slug_on_create_is_a_form_error_not_a_crash(self):
+        Chapter.objects.create(
+            class_level=self.class_level, title='Introduction', slug='introduction', order=1,
+        )
+        response = self.client.post(reverse('ap:chapter_add'), {
+            'class_level': self.class_level.pk, 'title': 'Introduction',
+            'slug': '', 'order': 2, 'description': '',
+        })
+        self.assertEqual(response.status_code, 200)  # re-rendered form, not a 500
+        self.assertFalse(response.context['form'].is_valid())
+        self.assertIn('already exists', str(response.context['form'].errors))
+        self.assertEqual(Chapter.objects.filter(class_level=self.class_level).count(), 1)
+
+    def test_colliding_auto_generated_slug_on_edit_is_a_form_error_not_a_crash(self):
+        Chapter.objects.create(
+            class_level=self.class_level, title='Fractions', slug='fractions', order=1,
+        )
+        victim = Chapter.objects.create(
+            class_level=self.class_level, title='Something Else', slug='something-else', order=2,
+        )
+        response = self.client.post(reverse('ap:chapter_edit', args=[victim.pk]), {
+            'class_level': self.class_level.pk, 'title': 'Fractions',
+            'slug': '', 'order': 2, 'description': '',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['form'].is_valid())
+        self.assertIn('already exists', str(response.context['form'].errors))
+        victim.refresh_from_db()
+        self.assertEqual(victim.slug, 'something-else')  # untouched
 
 
 class QuestionChoiceBackURLTests(TestCase):
@@ -355,6 +394,57 @@ class LessonCRUDTests(TestCase):
         response = self.client.post(reverse('ap:lesson_delete', args=[lesson.pk]))
         self.assertRedirects(response, reverse('ap:lesson_list'))
         self.assertFalse(Lesson.objects.filter(pk=lesson.pk).exists())
+
+
+class LessonSlugCollisionTests(TestCase):
+    """Same bug, same fix, as ChapterSlugAutofillTests' collision tests —
+    Lesson.slug is also required=False with a clean()-time auto-fill
+    (unique_together is ('chapter', 'slug') here instead of
+    ('class_level', 'slug'))."""
+
+    def setUp(self):
+        self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
+        self.client.force_login(self.staff)
+        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
+        class_level = ClassLevel.objects.create(subject=subject, level=6)
+        self.chapter = Chapter.objects.create(
+            class_level=class_level, title='Intro', slug='intro', order=1,
+        )
+
+    def test_colliding_auto_generated_slug_on_create_is_a_form_error_not_a_crash(self):
+        Lesson.objects.create(
+            chapter=self.chapter, title='Overview', slug='overview',
+            order=1, youtube_video_id='dQw4w9WgXcQ',
+        )
+        response = self.client.post(reverse('ap:lesson_add'), {
+            'chapter': self.chapter.pk, 'title': 'Overview', 'slug': '',
+            'order': 2, 'youtube_video_id': 'dQw4w9WgXcR',
+            'description': '', 'duration_minutes': 5,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['form'].is_valid())
+        self.assertIn('already exists', str(response.context['form'].errors))
+        self.assertEqual(Lesson.objects.filter(chapter=self.chapter).count(), 1)
+
+    def test_colliding_auto_generated_slug_on_edit_is_a_form_error_not_a_crash(self):
+        Lesson.objects.create(
+            chapter=self.chapter, title='Overview', slug='overview',
+            order=1, youtube_video_id='dQw4w9WgXcQ',
+        )
+        victim = Lesson.objects.create(
+            chapter=self.chapter, title='Something Else', slug='something-else',
+            order=2, youtube_video_id='dQw4w9WgXcR',
+        )
+        response = self.client.post(reverse('ap:lesson_edit', args=[victim.pk]), {
+            'chapter': self.chapter.pk, 'title': 'Overview', 'slug': '',
+            'order': 2, 'youtube_video_id': 'dQw4w9WgXcR',
+            'description': '', 'duration_minutes': 5,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['form'].is_valid())
+        self.assertIn('already exists', str(response.context['form'].errors))
+        victim.refresh_from_db()
+        self.assertEqual(victim.slug, 'something-else')
 
 
 class WriteActionPermissionTests(TestCase):

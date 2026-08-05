@@ -1,4 +1,6 @@
 from django import forms
+from django.utils.text import slugify
+
 from core.models import Subject, ClassLevel, Chapter, Lesson, Resource, Quiz, Question, Choice
 
 
@@ -38,9 +40,9 @@ class ClassLevelForm(StyledFormMixin, forms.ModelForm):
 
 class ChapterForm(StyledFormMixin, forms.ModelForm):
     # Chapter.slug has no blank=True, so ModelForm would normally make it a
-    # required field — rejecting an empty submission before the view's
-    # "auto-fill from title if left blank" fallback ever runs. The help text
-    # already promises that fallback; this override is what makes it real.
+    # required field — rejecting an empty submission before we could ever
+    # fall back to the title. required=False lets a blank submission reach
+    # clean() below.
     slug = forms.SlugField(required=False)
 
     class Meta:
@@ -51,11 +53,23 @@ class ChapterForm(StyledFormMixin, forms.ModelForm):
             'order': 'Display order within the class level.',
         }
 
+    def clean(self):
+        # Filled in here, not in the view's form_valid(), because ModelForm
+        # validates unique_together during _post_clean() -- which runs right
+        # after this method, against whatever is in cleaned_data at that
+        # point. Generating the slug in the view (after is_valid() already
+        # passed) meant a collision between two auto-generated slugs skipped
+        # that check entirely and hit the database as a raw IntegrityError
+        # instead of a normal "already exists" form error.
+        cleaned_data = super().clean()
+        if not cleaned_data.get('slug') and cleaned_data.get('title'):
+            cleaned_data['slug'] = slugify(cleaned_data['title'])
+        return cleaned_data
+
 
 class LessonForm(StyledFormMixin, forms.ModelForm):
     # Same reasoning as ChapterForm.slug above — Lesson.slug has no
-    # blank=True either, so this override is what makes the "auto-filled
-    # from title if left blank" help text actually true.
+    # blank=True either.
     slug = forms.SlugField(required=False)
 
     class Meta:
@@ -65,6 +79,14 @@ class LessonForm(StyledFormMixin, forms.ModelForm):
             'youtube_video_id': 'Only the ID part of the YouTube URL. E.g. for https://youtube.com/watch?v=dQw4w9WgXcQ enter: dQw4w9WgXcQ',
             'slug': 'Auto-filled from title if left blank.',
         }
+
+    def clean(self):
+        # See ChapterForm.clean — same fix, same reason: fill the slug
+        # before unique_together validation runs, not after.
+        cleaned_data = super().clean()
+        if not cleaned_data.get('slug') and cleaned_data.get('title'):
+            cleaned_data['slug'] = slugify(cleaned_data['title'])
+        return cleaned_data
 
 
 class ResourceForm(StyledFormMixin, forms.ModelForm):
