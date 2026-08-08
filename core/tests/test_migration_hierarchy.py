@@ -1,22 +1,29 @@
-"""Guards the one step in 0005 that can silently lose content.
+"""Guards the data move across migrations 0005-0009 that can silently lose content.
 
-`invert_hierarchy` swaps the top two levels and repoints every Chapter:
+`invert_hierarchy` (0006) swaps the top two levels and repoints every Chapter:
 
     academic:  Maths / Class 6    ->  Class "Class 6"  > Subject "Maths"
     course:    Python / Beginner  ->  Class "Python"   > Subject "Beginner"
 
-Chapter.class_level cascades, so an ordering mistake in the migration would
-delete lessons rather than move them. That is what these tests exist to catch.
+The chain is split across five migrations (0005 DDL, 0006 data, 0007 DDL, 0008
+data, 0009 DDL) because PostgreSQL rejects an ALTER TABLE run in the same
+transaction as a preceding DML write to that table (deferred FK-constraint
+triggers not yet fired) -- a restriction SQLite doesn't share, which is why the
+original single-migration version passed here but crashed in production. Each
+DDL-only migration's ALTER/RemoveField/DeleteModel would cascade-delete
+lessons rather than move them if the data migrations ahead of it got the
+ordering wrong. That is what these tests exist to catch.
 
-Runs the real migration through MigrationExecutor: rewind to 0004, build a
-pre-migration world with the historical models, roll forward, then inspect.
+Runs the real migrations through MigrationExecutor: rewind to 0004, build a
+pre-migration world with the historical models, roll all the way forward to
+0009, then inspect.
 """
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
 MIGRATE_FROM = ('core', '0004_custom_courses')
-MIGRATE_TO = ('core', '0005_dynamic_hierarchy')
+MIGRATE_TO = ('core', '0009_tighten_subject_and_retire_classlevel')
 
 
 class InvertHierarchyTests(TransactionTestCase):
