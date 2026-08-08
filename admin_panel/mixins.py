@@ -1,7 +1,7 @@
 """Shared plumbing for the admin_panel class-based views.
 
 These mixins exist purely to remove the boilerplate that used to be
-copy-pasted across every Subject/ClassLevel/Chapter/Lesson/Quiz/... CRUD
+copy-pasted across every CourseKind/Class/Subject/Chapter/Lesson/Quiz CRUD
 view in views.py — the staff gate, the sidebar `page` flag, the pager
 querystring, and the form/confirm-delete template context. None of them
 change what staff see or how the panel behaves; every existing template

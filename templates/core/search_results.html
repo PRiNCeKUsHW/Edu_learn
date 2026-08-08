@@ -50,6 +50,31 @@
     {{ total_results }} result{{ total_results|pluralize }} for “{{ query }}”
   </p>
 
+  <!-- ── Classes ── -->
+  {% if classes_page.paginator.count %}
+  <section aria-labelledby="classesHeading" style="margin-bottom: var(--space-7)">
+    <div class="d-flex align-items-center gap-2" style="margin-bottom: var(--space-3)">
+      <span id="classesHeading" class="t-eyebrow">Classes</span>
+      <span class="chip">{{ classes_page.paginator.count }}</span>
+    </div>
+    <div class="panel reveal reveal-3" style="padding: var(--space-2)">
+      {% for klass in classes_page %}
+      <a class="row-link" href="{% url 'subject_list' klass.slug %}">
+        <i class="bi {{ klass.icon }} text-accent flex-shrink-0" aria-hidden="true"></i>
+        <span class="flex-grow-1" style="min-width: 0">
+          <span class="row-title d-block">{{ klass.name }}</span>
+          <span class="t-meta truncate-1">
+            {% if klass.kind %}{{ klass.kind.name }}{% if klass.description %} · {% endif %}{% endif %}{{ klass.description }}
+          </span>
+        </span>
+        <i class="bi bi-chevron-right text-muted-ink flex-shrink-0" aria-hidden="true"></i>
+      </a>
+      {% endfor %}
+    </div>
+    {% include 'core/_pager.html' with page_obj=classes_page param_name='klpage' pager_query=classes_pager_query %}
+  </section>
+  {% endif %}
+
   <!-- ── Subjects ── -->
   {% if subjects_page.paginator.count %}
   <section aria-labelledby="subjectsHeading" style="margin-bottom: var(--space-7)">
@@ -59,13 +84,11 @@
     </div>
     <div class="panel reveal reveal-3" style="padding: var(--space-2)">
       {% for subject in subjects_page %}
-      <a class="row-link" href="{% url 'class_list' subject.slug %}">
+      <a class="row-link" href="{% url 'chapter_list' subject.klass.slug subject.slug %}">
         <i class="bi {{ subject.icon_class }} text-accent flex-shrink-0" aria-hidden="true"></i>
         <span class="flex-grow-1" style="min-width: 0">
           <span class="row-title d-block">{{ subject.name }}</span>
-          {% if subject.description %}
-          <span class="t-meta truncate-1">{{ subject.description }}</span>
-          {% endif %}
+          <span class="t-meta truncate-1">{{ subject.klass.name }}{% if subject.description %} · {{ subject.description }}{% endif %}</span>
         </span>
         <i class="bi bi-chevron-right text-muted-ink flex-shrink-0" aria-hidden="true"></i>
       </a>
@@ -84,11 +107,11 @@
     </div>
     <div class="panel reveal reveal-3" style="padding: var(--space-2)">
       {% for chapter in chapters_page %}
-      <a class="row-link" href="{% url 'chapter_list' chapter.class_level.subject.slug chapter.class_level.level %}">
+      <a class="row-link" href="{% url 'chapter_list' chapter.subject.klass.slug chapter.subject.slug %}">
         <i class="bi bi-collection text-accent flex-shrink-0" aria-hidden="true"></i>
         <span class="flex-grow-1" style="min-width: 0">
           <span class="row-title d-block">{{ chapter.title }}</span>
-          <span class="t-meta">{{ chapter.class_level.subject.name }} · Class {{ chapter.class_level.level }}</span>
+          <span class="t-meta">{{ chapter.subject.klass.name }} · {{ chapter.subject.name }}</span>
         </span>
         <i class="bi bi-chevron-right text-muted-ink flex-shrink-0" aria-hidden="true"></i>
       </a>
@@ -107,11 +130,11 @@
     </div>
     <div class="panel reveal reveal-3" style="padding: var(--space-2)">
       {% for lesson in lessons_page %}
-      <a class="row-link" href="{% url 'lesson_detail' lesson.chapter.class_level.subject.slug lesson.chapter.class_level.level lesson.chapter.slug lesson.slug %}">
+      <a class="row-link" href="{% url 'lesson_detail' lesson.chapter.subject.klass.slug lesson.chapter.subject.slug lesson.chapter.slug lesson.slug %}">
         <i class="bi bi-play-circle text-accent flex-shrink-0" aria-hidden="true"></i>
         <span class="flex-grow-1" style="min-width: 0">
           <span class="row-title d-block">{{ lesson.title }}</span>
-          <span class="t-meta">{{ lesson.chapter.class_level.subject.name }} · Class {{ lesson.chapter.class_level.level }} · {{ lesson.chapter.title }}</span>
+          <span class="t-meta">{{ lesson.chapter.subject.klass.name }} · {{ lesson.chapter.subject.name }} · {{ lesson.chapter.title }}</span>
         </span>
         <i class="bi bi-chevron-right text-muted-ink flex-shrink-0" aria-hidden="true"></i>
       </a>

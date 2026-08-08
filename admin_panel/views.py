@@ -11,12 +11,12 @@ from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from core.models import (
-    Chapter, Choice, ClassLevel, Comment, Lesson,
+    Chapter, Choice, Class, Comment, CourseKind, Lesson,
     Question, Quiz, QuizAttempt, Resource, Subject,
 )
 
 from .forms import (
-    ChapterForm, ChoiceForm, ClassLevelForm, LessonForm,
+    ChapterForm, ChoiceForm, ClassForm, CourseKindForm, LessonForm,
     QuestionForm, QuizForm, ResourceForm, SubjectForm,
 )
 from .mixins import AdminDeleteMixin, AdminFormMixin, AdminListMixin, StaffRequiredMixin
@@ -31,8 +31,9 @@ logger = logging.getLogger(__name__)
 @staff_member_required
 def dashboard(request):
     stats = {
+        'kinds':     CourseKind.objects.count(),
+        'classes':   Class.objects.count(),
         'subjects':  Subject.objects.count(),
-        'classes':   ClassLevel.objects.count(),
         'chapters':  Chapter.objects.count(),
         'lessons':   Lesson.objects.count(),
         'users':     User.objects.count(),
@@ -43,16 +44,124 @@ def dashboard(request):
     recent_users    = User.objects.order_by('-date_joined')[:5]
     recent_comments = Comment.objects.select_related('user', 'lesson').order_by('-created_at')[:5]
     recent_attempts = QuizAttempt.objects.select_related('user', 'quiz').order_by('-attempted_at')[:5]
-    subjects        = Subject.objects.annotate(lesson_count=Count('class_levels__chapters__lessons')).all()
+    classes         = Class.objects.select_related('kind').annotate(
+        lesson_count=Count('subjects__chapters__lessons')
+    )
 
     return render(request, 'admin_panel/dashboard.html', {
         'stats': stats,
         'recent_users': recent_users,
         'recent_comments': recent_comments,
         'recent_attempts': recent_attempts,
-        'subjects': subjects,
+        'classes': classes,
         'page': 'dashboard',
     })
+
+
+# ─────────────────────────────────────────────
+# COURSE KINDS
+# ─────────────────────────────────────────────
+
+class CourseKindListView(AdminListMixin, ListView):
+    model = CourseKind
+    context_object_name = 'kinds'
+    template_name = 'admin_panel/coursekind_list.html'
+    page = 'kinds'
+
+    def get_queryset(self):
+        # Explicit order_by: aggregation clears Meta.ordering, which leaves
+        # the paginator with an unordered queryset and unstable pages.
+        return CourseKind.objects.annotate(
+            class_count=Count('classes', distinct=True)
+        ).order_by('order', 'name')
+
+
+class CourseKindCreateView(AdminFormMixin, SuccessMessageMixin, CreateView):
+    model = CourseKind
+    form_class = CourseKindForm
+    page = 'kinds'
+    title = 'Add Course Kind'
+    subtitle = 'A category for classes, e.g. School, Coaching or Bootcamp'
+    back_url_name = 'ap:coursekind_list'
+    success_message = 'Course kind "%(name)s" added.'
+
+
+class CourseKindUpdateView(AdminFormMixin, SuccessMessageMixin, UpdateView):
+    model = CourseKind
+    form_class = CourseKindForm
+    page = 'kinds'
+    subtitle = 'Update course kind details'
+    back_url_name = 'ap:coursekind_list'
+    success_message = 'Course kind "%(name)s" updated.'
+
+    def get_title(self):
+        return f'Edit Course Kind: {self.object.name}'
+
+
+class CourseKindDeleteView(AdminDeleteMixin, DeleteView):
+    model = CourseKind
+    obj_type = 'Course Kind'
+    back_url_name = 'ap:coursekind_list'
+    success_message = 'Course kind "%(name)s" deleted.'
+    page = 'kinds'
+
+
+# ─────────────────────────────────────────────
+# CLASSES
+# ─────────────────────────────────────────────
+
+class ClassListView(AdminListMixin, ListView):
+    model = Class
+    context_object_name = 'classes'
+    template_name = 'admin_panel/class_list.html'
+    page = 'classes'
+
+    def get_queryset(self):
+        # Explicit order_by for the same reason as CourseKindListView.
+        qs = Class.objects.select_related('kind').annotate(
+            subject_count=Count('subjects', distinct=True),
+            lesson_count=Count('subjects__chapters__lessons', distinct=True),
+        ).order_by('order', 'name')
+        self.kind_filter = self.request.GET.get('kind')
+        if self.kind_filter:
+            qs = qs.filter(kind__slug=self.kind_filter)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['kinds'] = CourseKind.objects.all()
+        context['kind_filter'] = self.kind_filter
+        return context
+
+
+class ClassCreateView(AdminFormMixin, SuccessMessageMixin, CreateView):
+    model = Class
+    form_class = ClassForm
+    page = 'classes'
+    title = 'Add Class'
+    subtitle = 'Anything students pick from the dashboard: Class 2, UPSC Batch, Python Bootcamp'
+    back_url_name = 'ap:class_list'
+    success_message = 'Class "%(name)s" added.'
+
+
+class ClassUpdateView(AdminFormMixin, SuccessMessageMixin, UpdateView):
+    model = Class
+    form_class = ClassForm
+    page = 'classes'
+    subtitle = 'Update class details'
+    back_url_name = 'ap:class_list'
+    success_message = 'Class "%(name)s" updated.'
+
+    def get_title(self):
+        return f'Edit Class: {self.object.name}'
+
+
+class ClassDeleteView(AdminDeleteMixin, DeleteView):
+    model = Class
+    obj_type = 'Class'
+    back_url_name = 'ap:class_list'
+    success_message = 'Class "%(name)s" deleted.'
+    page = 'classes'
 
 
 # ─────────────────────────────────────────────
@@ -66,10 +175,20 @@ class SubjectListView(AdminListMixin, ListView):
     page = 'subjects'
 
     def get_queryset(self):
-        return Subject.objects.annotate(
-            class_count=Count('class_levels', distinct=True),
-            lesson_count=Count('class_levels__chapters__lessons', distinct=True),
-        ).order_by('name')
+        qs = Subject.objects.select_related('klass').annotate(
+            chapter_count=Count('chapters', distinct=True),
+            lesson_count=Count('chapters__lessons', distinct=True),
+        ).order_by('klass__name', 'order', 'name')
+        self.class_filter = self.request.GET.get('class')
+        if self.class_filter:
+            qs = qs.filter(klass__slug=self.class_filter)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['classes'] = Class.objects.all()
+        context['class_filter'] = self.class_filter
+        return context
 
 
 class SubjectCreateView(AdminFormMixin, SuccessMessageMixin, CreateView):
@@ -77,9 +196,9 @@ class SubjectCreateView(AdminFormMixin, SuccessMessageMixin, CreateView):
     form_class = SubjectForm
     page = 'subjects'
     title = 'Add Subject'
-    subtitle = 'Create a new subject (e.g. Mathematics, Physics)'
+    subtitle = 'A division of a class, e.g. Maths under Class 2 or Basics under Python'
     back_url_name = 'ap:subject_list'
-    success_message = 'Subject added successfully.'
+    success_message = 'Subject "%(name)s" added.'
 
 
 class SubjectUpdateView(AdminFormMixin, SuccessMessageMixin, UpdateView):
@@ -103,63 +222,6 @@ class SubjectDeleteView(AdminDeleteMixin, DeleteView):
 
 
 # ─────────────────────────────────────────────
-# CLASS LEVELS
-# ─────────────────────────────────────────────
-
-class ClassLevelListView(AdminListMixin, ListView):
-    model = ClassLevel
-    context_object_name = 'class_levels'
-    template_name = 'admin_panel/classlevel_list.html'
-    page = 'classes'
-
-    def get_queryset(self):
-        qs = ClassLevel.objects.select_related('subject').annotate(
-            chapter_count=Count('chapters', distinct=True),
-            lesson_count=Count('chapters__lessons', distinct=True),
-        ).order_by('subject__name', 'level')
-        self.subject_filter = self.request.GET.get('subject')
-        if self.subject_filter:
-            qs = qs.filter(subject__slug=self.subject_filter)
-        return qs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['subjects'] = Subject.objects.all()
-        context['subject_filter'] = self.subject_filter
-        return context
-
-
-class ClassLevelCreateView(AdminFormMixin, SuccessMessageMixin, CreateView):
-    model = ClassLevel
-    form_class = ClassLevelForm
-    page = 'classes'
-    title = 'Add Class Level'
-    subtitle = 'Link a class (6–12) to a subject'
-    back_url_name = 'ap:classlevel_list'
-    success_message = 'Class level added successfully.'
-
-
-class ClassLevelUpdateView(AdminFormMixin, SuccessMessageMixin, UpdateView):
-    model = ClassLevel
-    form_class = ClassLevelForm
-    page = 'classes'
-    subtitle = 'Update class level details'
-    back_url_name = 'ap:classlevel_list'
-    success_message = 'Class %(level)s updated.'
-
-    def get_title(self):
-        return f'Edit: {self.object}'
-
-
-class ClassLevelDeleteView(AdminDeleteMixin, DeleteView):
-    model = ClassLevel
-    obj_type = 'Class Level'
-    back_url_name = 'ap:classlevel_list'
-    success_message = '%(obj)s deleted.'
-    page = 'classes'
-
-
-# ─────────────────────────────────────────────
 # CHAPTERS
 # ─────────────────────────────────────────────
 
@@ -170,24 +232,28 @@ class ChapterListView(AdminListMixin, ListView):
     page = 'chapters'
 
     def get_queryset(self):
-        qs = Chapter.objects.select_related('class_level__subject').annotate(
+        qs = Chapter.objects.select_related('subject__klass').annotate(
             lesson_count=Count('lessons', distinct=True)
-        ).order_by('class_level__subject__name', 'class_level__level', 'order')
+        ).order_by('subject__klass__name', 'subject__order', 'order')
+        self.class_filter = self.request.GET.get('class')
         self.subject_filter = self.request.GET.get('subject')
-        self.level_filter = self.request.GET.get('level')
-        if self.subject_filter:
-            qs = qs.filter(class_level__subject__slug=self.subject_filter)
-        if self.level_filter:
-            qs = qs.filter(class_level__level=self.level_filter)
+        if self.class_filter:
+            qs = qs.filter(subject__klass__slug=self.class_filter)
+        # By pk, not slug: a slug like 'maths' is shared across classes, so it
+        # couldn't identify the one row the dropdown label names. isdigit()
+        # because the value comes straight off the query string -- a
+        # non-numeric ?subject= would otherwise raise ValueError as a 500.
+        if self.subject_filter and self.subject_filter.isdigit():
+            qs = qs.filter(subject_id=self.subject_filter)
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update({
-            'subjects': Subject.objects.all(),
+            'classes': Class.objects.all(),
+            'class_filter': self.class_filter,
             'subject_filter': self.subject_filter,
-            'level_filter': self.level_filter,
-            'level_choices': range(6, 13),
+            'subject_choices': Subject.objects.select_related('klass'),
         })
         return context
 
@@ -234,15 +300,15 @@ class LessonListView(AdminListMixin, ListView):
 
     def get_queryset(self):
         qs = Lesson.objects.select_related(
-            'chapter__class_level__subject'
+            'chapter__subject__klass'
         ).annotate(
             comment_count=Count('comments', distinct=True),
             watch_count=Count('progress', distinct=True),
-        ).order_by('chapter__class_level__subject__name', 'chapter__order', 'order')
-        self.subject_filter = self.request.GET.get('subject')
+        ).order_by('chapter__subject__klass__name', 'chapter__order', 'order')
+        self.class_filter = self.request.GET.get('class')
         self.search = self.request.GET.get('q', '')
-        if self.subject_filter:
-            qs = qs.filter(chapter__class_level__subject__slug=self.subject_filter)
+        if self.class_filter:
+            qs = qs.filter(chapter__subject__klass__slug=self.class_filter)
         if self.search:
             qs = qs.filter(
                 Q(title__icontains=self.search) | Q(youtube_video_id__icontains=self.search)
@@ -252,8 +318,8 @@ class LessonListView(AdminListMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update({
-            'subjects': Subject.objects.all(),
-            'subject_filter': self.subject_filter,
+            'classes': Class.objects.all(),
+            'class_filter': self.class_filter,
             'search': self.search,
         })
         return context
@@ -305,7 +371,7 @@ class ResourceListView(AdminListMixin, ListView):
 
     def get_queryset(self):
         return Resource.objects.select_related(
-            'lesson__chapter__class_level__subject'
+            'lesson__chapter__subject__klass'
         ).order_by('-uploaded_at')
 
 
@@ -345,10 +411,10 @@ class QuizListView(AdminListMixin, ListView):
     page = 'quizzes'
 
     def get_queryset(self):
-        return Quiz.objects.select_related('chapter__class_level__subject').annotate(
+        return Quiz.objects.select_related('chapter__subject__klass').annotate(
             q_count=Count('questions', distinct=True),
             attempt_count=Count('attempts', distinct=True),
-        ).order_by('chapter__class_level__subject__name')
+        ).order_by('chapter__subject__klass__name')
 
 
 class QuizCreateView(AdminFormMixin, SuccessMessageMixin, CreateView):
@@ -587,7 +653,7 @@ class CommentListView(AdminListMixin, ListView):
 
     def get_queryset(self):
         return Comment.objects.select_related(
-            'user', 'lesson__chapter__class_level__subject', 'parent'
+            'user', 'lesson__chapter__subject__klass', 'parent'
         ).order_by('-created_at')
 
 

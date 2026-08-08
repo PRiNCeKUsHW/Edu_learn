@@ -6,7 +6,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from core.models import Chapter, ClassLevel, Lesson, LessonProgress, Subject
+from core.models import LessonProgress
+from core.tests.factories import make_content
 
 
 class LoginRedirectSecurityTests(TestCase):
@@ -40,15 +41,7 @@ class LoginRedirectSecurityTests(TestCase):
 
 class UnauthorizedAccessTests(TestCase):
     def setUp(self):
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
-        chapter = Chapter.objects.create(
-            class_level=class_level, title='Intro', slug='intro', order=1,
-        )
-        self.lesson = Lesson.objects.create(
-            chapter=chapter, title='Lesson 1', slug='lesson-1',
-            order=1, youtube_video_id='dQw4w9WgXcQ',
-        )
+        _, _, _, self.lesson = make_content()
 
     def test_admin_panel_is_unreachable_without_staff(self):
         student = User.objects.create_user(username='student', password='pass12345')

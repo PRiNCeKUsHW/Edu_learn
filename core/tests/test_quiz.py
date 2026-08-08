@@ -7,7 +7,8 @@ from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from core.models import Chapter, Choice, ClassLevel, Question, Quiz, QuizAttempt, Subject
+from core.models import Chapter, Choice, Question, Quiz, QuizAttempt
+from core.tests.factories import make_chapter, make_class, make_subject
 
 
 class QuizScoringTests(TestCase):
@@ -15,13 +16,9 @@ class QuizScoringTests(TestCase):
         self.user = User.objects.create_user(username='student', password='pass12345')
         self.client.force_login(self.user)
 
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
-        chapter = Chapter.objects.create(
-            class_level=class_level, title='Numbers', slug='numbers', order=1,
-        )
+        chapter = make_chapter(make_subject(make_class(), 'Maths'), 'Numbers')
         self.quiz = Quiz.objects.create(chapter=chapter, title='Numbers Quiz', pass_percentage=60)
-        self.url = reverse('quiz', args=['mathematics', 6, 'numbers'])
+        self.url = reverse('quiz', args=['class-6', 'maths', 'numbers'])
 
         self.q1 = Question.objects.create(quiz=self.quiz, text='2 + 2 = ?', order=1)
         self.q1_right = Choice.objects.create(question=self.q1, text='4', is_correct=True)
@@ -96,13 +93,9 @@ class QuizQueryCountTests(TestCase):
         self.user = User.objects.create_user(username='student', password='pass12345')
         self.client.force_login(self.user)
 
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
-        chapter = Chapter.objects.create(
-            class_level=class_level, title='Numbers', slug='numbers', order=1,
-        )
+        chapter = make_chapter(make_subject(make_class(), 'Maths'), 'Numbers')
         self.quiz = Quiz.objects.create(chapter=chapter, title='Numbers Quiz', pass_percentage=60)
-        self.url = reverse('quiz', args=['mathematics', 6, 'numbers'])
+        self.url = reverse('quiz', args=['class-6', 'maths', 'numbers'])
 
         self.questions = []
         for i in range(8):
@@ -131,18 +124,17 @@ class QuizDuplicateSlugTests(TestCase):
         self.user = User.objects.create_user(username='student', password='pass12345')
         self.client.force_login(self.user)
 
-        self.maths = Subject.objects.create(name='Mathematics', slug='mathematics')
-        self.physics = Subject.objects.create(name='Physics', slug='physics')
-        self.maths_cl = ClassLevel.objects.create(subject=self.maths, level=6)
-        self.physics_cl = ClassLevel.objects.create(subject=self.physics, level=6)
+        klass = make_class('Class 6')
+        self.maths = make_subject(klass, 'Maths')
+        self.physics = make_subject(klass, 'Physics')
 
         # Same slug, same class level number, different subjects — this used
         # to be enough to trigger MultipleObjectsReturned.
         self.maths_chapter = Chapter.objects.create(
-            class_level=self.maths_cl, title='Introduction', slug='introduction', order=1,
+            subject=self.maths, title='Introduction', slug='introduction', order=1,
         )
         self.physics_chapter = Chapter.objects.create(
-            class_level=self.physics_cl, title='Introduction', slug='introduction', order=1,
+            subject=self.physics, title='Introduction', slug='introduction', order=1,
         )
 
         self.maths_quiz = Quiz.objects.create(
@@ -157,8 +149,8 @@ class QuizDuplicateSlugTests(TestCase):
         self.question = q
 
     def test_each_chapter_resolves_to_its_own_quiz(self):
-        maths_url = reverse('quiz', args=['mathematics', 6, 'introduction'])
-        physics_url = reverse('quiz', args=['physics', 6, 'introduction'])
+        maths_url = reverse('quiz', args=['class-6', 'maths', 'introduction'])
+        physics_url = reverse('quiz', args=['class-6', 'physics', 'introduction'])
 
         maths_resp = self.client.get(maths_url)
         physics_resp = self.client.get(physics_url)
@@ -169,11 +161,11 @@ class QuizDuplicateSlugTests(TestCase):
         self.assertContains(physics_resp, 'Physics Intro Quiz')
 
     def test_unknown_subject_scope_404s_instead_of_crossing_over(self):
-        response = self.client.get(reverse('quiz', args=['mathematics', 7, 'introduction']))
+        response = self.client.get(reverse('quiz', args=['class-6', 'chemistry', 'introduction']))
         self.assertEqual(response.status_code, 404)
 
     def test_quiz_submission_still_scores_correctly(self):
-        url = reverse('quiz', args=['mathematics', 6, 'introduction'])
+        url = reverse('quiz', args=['class-6', 'maths', 'introduction'])
         response = self.client.post(url, {f'question_{self.question.id}': self.correct_choice.id})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'You passed')

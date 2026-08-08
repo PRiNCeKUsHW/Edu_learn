@@ -10,8 +10,8 @@
 
       <ol class="crumbs">
         <li><a href="{% url 'dashboard' %}">Home</a></li>
-        <li><a href="{% url 'class_list' subject.slug %}">{{ subject.name }}</a></li>
-        <li><a href="{% url 'chapter_list' subject.slug class_obj.level %}">Class {{ class_obj.level }}</a></li>
+        <li><a href="{% url 'subject_list' klass.slug %}">{{ klass.name }}</a></li>
+        <li><a href="{% url 'chapter_list' klass.slug subject.slug %}">{{ subject.name }}</a></li>
         <li class="is-current truncate-1" style="max-width: 22ch">{{ chapter.title }}</li>
       </ol>
 
@@ -46,7 +46,7 @@
       <!-- ── Prev / next ── -->
       <nav class="d-flex justify-content-between gap-2" style="margin-bottom: var(--space-8)" aria-label="Lesson navigation">
         {% if prev_lesson %}
-        <a class="btn btn-quiet" style="max-width: 48%" href="{% url 'lesson_detail' subject.slug class_obj.level chapter.slug prev_lesson.slug %}">
+        <a class="btn btn-quiet" style="max-width: 48%" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug prev_lesson.slug %}">
           <i class="bi bi-arrow-left flex-shrink-0" aria-hidden="true"></i>
           <span class="truncate-1">{{ prev_lesson.title }}</span>
         </a>
@@ -55,7 +55,7 @@
         {% endif %}
 
         {% if next_lesson %}
-        <a class="btn btn-accent" style="max-width: 48%" href="{% url 'lesson_detail' subject.slug class_obj.level chapter.slug next_lesson.slug %}">
+        <a class="btn btn-accent" style="max-width: 48%" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug next_lesson.slug %}">
           <span class="truncate-1">{{ next_lesson.title }}</span>
           <i class="bi bi-arrow-right flex-shrink-0" aria-hidden="true"></i>
         </a>
@@ -148,7 +148,7 @@
         <p class="t-meta" style="margin-bottom: var(--space-4)">
           {{ quiz.total_questions }} question{{ quiz.total_questions|pluralize }} · pass mark {{ quiz.pass_percentage }}%
         </p>
-        <a class="btn btn-accent btn-block-q" href="{% url 'quiz' subject.slug class_obj.level chapter.slug %}">
+        <a class="btn btn-accent btn-block-q" href="{% url 'quiz' klass.slug subject.slug chapter.slug %}">
           Take quiz<i class="bi bi-arrow-right" aria-hidden="true"></i>
         </a>
       </div>
@@ -173,7 +173,7 @@
         <div class="t-eyebrow" style="margin-bottom: var(--space-3)">In this chapter</div>
         <nav aria-label="Chapter lessons">
           {% for l in chapter.lessons.all %}
-          <a class="row-link {% if l.id == lesson.id %}is-current{% endif %}" style="padding: var(--space-2) var(--space-3); min-height: 44px" href="{% url 'lesson_detail' subject.slug class_obj.level chapter.slug l.slug %}" {% if l.id == lesson.id %}aria-current="page"{% endif %}>
+          <a class="row-link {% if l.id == lesson.id %}is-current{% endif %}" style="padding: var(--space-2) var(--space-3); min-height: 44px" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug l.slug %}" {% if l.id == lesson.id %}aria-current="page"{% endif %}>
             <span class="row-index flex-shrink-0">{{ forloop.counter }}</span>
             <span class="row-title flex-grow-1">{{ l.title }}</span>
             {% if l.id == lesson.id %}

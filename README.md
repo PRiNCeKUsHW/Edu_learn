@@ -1,7 +1,9 @@
 # EduLearn — Django E-Learning Platform
 
 A full-stack e-learning web application built with Django and Bootstrap 5.
-Focused on Mathematics for Classes 6–12, scalable to any subject.
+Nothing about the education structure is hardcoded. The admin builds every level
+from an empty database, so the same code runs a school, a coaching institute, a
+bootcamp, a language academy or a corporate training portal.
 
 ---
 
@@ -17,7 +19,9 @@ Focused on Mathematics for Classes 6–12, scalable to any subject.
 ## Features
 
 - 🔐 User authentication (Google sign-up, email/password + Google login, logout)
-- 📚 Curriculum: Class Level → Subject → Chapter → Lesson
+- 📚 Fully dynamic hierarchy: Course Kind → Class → Subject → Chapter → Lesson
+- 🧱 No predefined classes, subjects or categories — the admin creates them all
+- 👁️ `is_active` on classes, subjects and kinds to hide content without deleting it
 - 🎬 YouTube video embed per lesson
 - ✅ "Mark as Watched" with AJAX (no page reload)
 - 📊 Progress tracking per subject on dashboard
@@ -97,13 +101,28 @@ Admin: **http://127.0.0.1:8000/admin**
 
 ## Adding Content via Admin Panel
 
-1. Go to `/admin` and log in with your superuser account.
-2. **Add a Subject** first (e.g., "Mathematics", slug: `mathematics`, icon: `bi-calculator`)
-3. **Add a ClassLevel** linked to the subject (e.g., level 8, subject: Mathematics)
-4. **Add a Chapter** linked to a ClassLevel (set title, slug, order)
-5. **Add Lessons** inside a Chapter — paste just the YouTube **Video ID** (the part after `?v=` in the URL)
-6. Optionally add **Resources** (PDF files) per lesson
-7. Optionally add a **Quiz** per chapter with Questions and Choices
+Everything below is created by you. A fresh database ships with no classes, no
+subjects and no course kinds — build whatever structure your institution needs.
+
+1. Go to `/panel/` (staff only) or `/admin/`.
+2. **Add a Course Kind** (optional) — a category for your classes. Give it a name,
+   an icon and a badge colour. E.g. *School*, *Coaching*, *Bootcamp*, *Workshop*.
+3. **Add a Class** — this is what students pick on the dashboard. The name is
+   entirely yours: `Class 2`, `Nursery`, `UPSC Batch`, `IIT JEE 2027`,
+   `Python Bootcamp`, `Kathak Level 1`. Optionally attach a kind and a thumbnail.
+4. **Add a Subject** under that class — `Maths`, `Physics`, `Basics`, `Grammar`.
+   Subject slugs are scoped per class, so every class can have its own `maths`.
+5. **Add a Chapter** under a subject (title, slug, order).
+6. **Add Lessons** inside a chapter — paste just the YouTube **Video ID** (the part
+   after `?v=` in the URL).
+7. Optionally add **Resources** (PDF files) per lesson.
+8. Optionally add a **Quiz** per chapter with Questions and Choices.
+
+A class with exactly one subject skips the picker page — students land straight
+on its chapters.
+
+Untick **is active** on any class or subject to hide it from students while
+keeping it (and all its lessons) in the database.
 
 ---
 
@@ -139,7 +158,7 @@ elearn_project/
 │       ├── google_complete_profile.html  # New Google user: pick username + password
 │       ├── google_link_confirm.html      # Existing password user: confirm linking Google
 │       ├── dashboard.html      # Subject overview + progress
-│       ├── class_list.html     # Class level selector
+│       ├── subject_list.html   # Subject selector
 │       ├── chapter_list.html   # Chapter accordion with lessons
 │       ├── lesson_detail.html  # Video player + comments + sidebar
 │       ├── quiz.html           # MCQ quiz form
@@ -163,12 +182,15 @@ elearn_project/
 | `/register/` | `register_view` | Google sign-up entry point (no password form) |
 | `/login/` | `login_view` | Login form |
 | `/logout/` | `logout_view` | Logout |
-| `/dashboard/` | `dashboard` | Subject cards + progress |
-| `/learn/<subject>/` | `class_list` | Class level selector |
-| `/learn/<subject>/class-<N>/` | `chapter_list` | Chapters accordion |
-| `/learn/<subject>/class-<N>/<chapter>/<lesson>/` | `lesson_detail` | Video player |
+| `/dashboard/` | `dashboard` | Class cards + progress |
+| `/learn/<class>/` | `subject_list` | Subject selector |
+| `/learn/<class>/<subject>/` | `chapter_list` | Chapters accordion |
+| `/learn/<class>/<subject>/<chapter>/<lesson>/` | `lesson_detail` | Video player |
 | `/lesson/<id>/mark-watched/` | `mark_watched` | AJAX toggle (POST) |
-| `/quiz/<chapter>/` | `quiz_view` | MCQ quiz + result |
+| `/quiz/<class>/<subject>/<chapter>/` | `quiz_view` | MCQ quiz + result |
+
+Every segment is a slug an admin chose, so `/learn/class-2/maths/…`,
+`/learn/upsc-batch/polity/…` and `/learn/python-bootcamp/basics/…` are one code path.
 | `/accounts/google/login/` | `google_login_view` | Redirects to Google |
 | `/accounts/google/callback/` | `google_callback_view` | Google redirects back here |
 | `/accounts/google/complete-profile/` | `google_complete_profile_view` | New-user username/password step |
@@ -176,13 +198,20 @@ elearn_project/
 
 ---
 
-## Adding More Subjects (Scalability)
+## Building a Different Kind of Platform
 
-1. In Django Admin, create a new **Subject** (e.g., "Physics", slug: `physics`, icon: `bi-lightning`)
-2. Add **ClassLevels** for Physics
-3. Add **Chapters** and **Lessons** as usual
+The hierarchy carries no assumptions, so switching domains is data entry, not code:
 
-The entire URL hierarchy automatically supports it — no code changes needed.
+| Platform | Course Kind | Class | Subject | Chapter | Lesson |
+|---|---|---|---|---|---|
+| School | School | Class 2 | Maths | Addition | Carrying over |
+| Coaching | Coaching | IIT JEE 2027 | Physics | Newton's Laws | Force |
+| Programming | Bootcamp | Python Bootcamp | Basics | Variables | Naming things |
+| Music | Certification | Guitar Grade 1 | Theory | Scales | The major scale |
+| Corporate | Workshop | Onboarding 2026 | Security | Phishing | Spotting a fake |
+
+No code changes needed for any of these — create the rows and the URLs,
+dashboard, search, progress tracking and quizzes all follow.
 
 ---
 

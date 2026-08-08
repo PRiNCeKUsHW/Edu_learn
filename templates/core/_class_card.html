@@ -1,0 +1,30 @@
+{# One dashboard card. `item` is a dict from core.views.dashboard: klass, percent, subject_count, watched_lessons, total_lessons. #}
+<div class="col-md-6">
+  <a class="card-link h-100 d-flex align-items-center gap-3 reveal reveal-4" style="padding: var(--space-5)" href="{% url 'subject_list' item.klass.slug %}">
+
+    <span class="ring {% if item.percent == 100 %}ring-complete{% endif %}" style="--pct: {{ item.percent }}" role="img" aria-label="{{ item.percent }} percent complete">
+      <span class="ring-label">{{ item.percent }}%</span>
+    </span>
+
+    <span class="flex-grow-1" style="min-width: 0">
+      <span class="d-flex align-items-center gap-2 flex-wrap" style="margin-bottom: 0.15rem">
+        {% if item.klass.thumbnail %}
+        <img src="{{ item.klass.thumbnail.url }}" alt="" class="flex-shrink-0" style="width: 24px; height: 24px; border-radius: var(--radius-sm); object-fit: cover" />
+        {% else %}
+        <i class="bi {{ item.klass.icon }} text-accent" aria-hidden="true"></i>
+        {% endif %}
+        {# No kind chip here: the section heading this card sits under already names the kind. #}
+        <span style="font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem">{{ item.klass.name }}</span>
+      </span>
+      <span class="t-meta d-block">
+        {{ item.subject_count }} subject{{ item.subject_count|pluralize }} ·
+        {{ item.watched_lessons }}/{{ item.total_lessons }} lesson{{ item.total_lessons|pluralize }}
+      </span>
+      {% if item.klass.description %}
+      <span class="t-meta d-block truncate-1" style="margin-top: 0.2rem">{{ item.klass.description }}</span>
+      {% endif %}
+    </span>
+
+    <i class="bi bi-chevron-right text-muted-ink d-none d-sm-block" aria-hidden="true"></i>
+  </a>
+</div>

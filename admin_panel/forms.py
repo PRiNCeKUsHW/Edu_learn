@@ -1,7 +1,9 @@
 from django import forms
 from django.utils.text import slugify
 
-from core.models import Subject, ClassLevel, Chapter, Lesson, Resource, Quiz, Question, Choice
+from core.models import (
+    CourseKind, Class, Subject, Chapter, Lesson, Resource, Quiz, Question, Choice,
+)
 
 
 class StyledFormMixin:
@@ -22,55 +24,97 @@ class StyledFormMixin:
                 widget.attrs['class'] = f'{existing} form-control'.strip()
 
 
-class SubjectForm(StyledFormMixin, forms.ModelForm):
+class SlugFromNameMixin:
+    """Fill a blank `slug` from another field during clean().
+
+    Deliberately here and not in the view's form_valid(): ModelForm validates
+    uniqueness during _post_clean(), which runs right after this method against
+    whatever is in cleaned_data at that point. Generating the slug in the view
+    (after is_valid() already passed) means a collision between two
+    auto-generated slugs skips that check entirely and hits the database as a
+    raw IntegrityError instead of a normal "already exists" form error.
+    """
+    slug_source = 'name'
+    slug_fallback = 'item'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get('slug'):
+            source = cleaned_data.get(self.slug_source)
+            if source:
+                cleaned_data['slug'] = slugify(source) or self.slug_fallback
+        return cleaned_data
+
+
+class CourseKindForm(SlugFromNameMixin, StyledFormMixin, forms.ModelForm):
+    slug = forms.SlugField(required=False)
+
+    class Meta:
+        model = CourseKind
+        fields = ('name', 'slug', 'icon', 'color', 'order', 'is_active', 'description')
+        help_texts = {
+            'name': 'E.g. School, Coaching, Bootcamp, Workshop, Certification.',
+            'slug': 'Auto-filled from the name if left blank.',
+            'icon': 'Bootstrap Icons class. E.g. bi-mortarboard, bi-rocket-takeoff',
+            'color': 'Hex colour for the badge shown on class cards.',
+        }
+        widgets = {'color': forms.TextInput(attrs={'type': 'color'})}
+
+
+class ClassForm(SlugFromNameMixin, StyledFormMixin, forms.ModelForm):
+    slug = forms.SlugField(required=False)
+
+    class Meta:
+        model = Class
+        fields = (
+            'name', 'slug', 'kind', 'icon', 'thumbnail',
+            'order', 'is_active', 'description',
+        )
+        help_texts = {
+            'name': 'Anything you like: Class 2, UPSC Batch, IIT JEE 2027, Python Bootcamp.',
+            'slug': 'Auto-filled from the name if left blank.',
+            'icon': 'Bootstrap Icons class, used when there is no thumbnail.',
+            'thumbnail': 'Optional cover image (PNG, JPG or WebP).',
+        }
+
+
+class SubjectForm(SlugFromNameMixin, StyledFormMixin, forms.ModelForm):
+    slug = forms.SlugField(required=False)
+
     class Meta:
         model = Subject
-        fields = ('name', 'slug', 'description', 'icon_class')
+        fields = ('klass', 'name', 'slug', 'icon_class', 'order', 'is_active', 'description')
         help_texts = {
-            'slug': 'URL-friendly name. Auto-filled from name. E.g. "mathematics"',
+            'name': 'A division of the class, e.g. Maths, Physics, Basics.',
+            'slug': 'Auto-filled from the name if left blank.',
             'icon_class': 'Bootstrap Icons class. E.g. bi-calculator, bi-atom, bi-book',
         }
 
 
-class ClassLevelForm(StyledFormMixin, forms.ModelForm):
-    class Meta:
-        model = ClassLevel
-        fields = ('subject', 'level', 'description')
-
-
-class ChapterForm(StyledFormMixin, forms.ModelForm):
+class ChapterForm(SlugFromNameMixin, StyledFormMixin, forms.ModelForm):
     # Chapter.slug has no blank=True, so ModelForm would normally make it a
     # required field — rejecting an empty submission before we could ever
     # fall back to the title. required=False lets a blank submission reach
-    # clean() below.
+    # SlugFromNameMixin.clean().
     slug = forms.SlugField(required=False)
+    slug_source = 'title'
+    slug_fallback = 'chapter'
 
     class Meta:
         model = Chapter
-        fields = ('class_level', 'title', 'slug', 'order', 'description')
+        fields = ('subject', 'title', 'slug', 'order', 'description')
         help_texts = {
             'slug': 'Auto-filled from title if left blank.',
-            'order': 'Display order within the class level.',
+            'order': 'Display order within the subject.',
         }
 
-    def clean(self):
-        # Filled in here, not in the view's form_valid(), because ModelForm
-        # validates unique_together during _post_clean() -- which runs right
-        # after this method, against whatever is in cleaned_data at that
-        # point. Generating the slug in the view (after is_valid() already
-        # passed) meant a collision between two auto-generated slugs skipped
-        # that check entirely and hit the database as a raw IntegrityError
-        # instead of a normal "already exists" form error.
-        cleaned_data = super().clean()
-        if not cleaned_data.get('slug') and cleaned_data.get('title'):
-            cleaned_data['slug'] = slugify(cleaned_data['title'])
-        return cleaned_data
 
-
-class LessonForm(StyledFormMixin, forms.ModelForm):
+class LessonForm(SlugFromNameMixin, StyledFormMixin, forms.ModelForm):
     # Same reasoning as ChapterForm.slug above — Lesson.slug has no
     # blank=True either.
     slug = forms.SlugField(required=False)
+    slug_source = 'title'
+    slug_fallback = 'lesson'
 
     class Meta:
         model = Lesson
@@ -79,14 +123,6 @@ class LessonForm(StyledFormMixin, forms.ModelForm):
             'youtube_video_id': 'Only the ID part of the YouTube URL. E.g. for https://youtube.com/watch?v=dQw4w9WgXcQ enter: dQw4w9WgXcQ',
             'slug': 'Auto-filled from title if left blank.',
         }
-
-    def clean(self):
-        # See ChapterForm.clean — same fix, same reason: fill the slug
-        # before unique_together validation runs, not after.
-        cleaned_data = super().clean()
-        if not cleaned_data.get('slug') and cleaned_data.get('title'):
-            cleaned_data['slug'] = slugify(cleaned_data['title'])
-        return cleaned_data
 
 
 class ResourceForm(StyledFormMixin, forms.ModelForm):

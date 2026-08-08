@@ -10,10 +10,10 @@
   {% with cards=stats %}
   <div class="col-6 col-lg-3">
     <div class="stat-card">
-      <div class="stat-icon" style="background:#eff6ff;color:#3b82f6;"><i class="bi bi-journal-bookmark"></i></div>
+      <div class="stat-icon" style="background:#eff6ff;color:#3b82f6;"><i class="bi bi-mortarboard"></i></div>
       <div>
-        <div class="stat-val">{{ stats.subjects }}</div>
-        <div class="stat-label">Subjects</div>
+        <div class="stat-val">{{ stats.classes }}</div>
+        <div class="stat-label">Classes</div>
       </div>
     </div>
   </div>
@@ -93,11 +93,14 @@
         <h2 class="ap-card-title">Quick Actions</h2>
       </div>
       <div class="ap-card-body d-flex flex-column gap-2">
+        <a href="{% url 'ap:coursekind_add' %}" class="btn-ap btn-ap-outline w-100">
+          <i class="bi bi-plus-circle"></i> Add Course Kind
+        </a>
+        <a href="{% url 'ap:class_add' %}" class="btn-ap btn-ap-outline w-100">
+          <i class="bi bi-plus-circle"></i> Add Class
+        </a>
         <a href="{% url 'ap:subject_add' %}" class="btn-ap btn-ap-outline w-100">
           <i class="bi bi-plus-circle"></i> Add Subject
-        </a>
-        <a href="{% url 'ap:classlevel_add' %}" class="btn-ap btn-ap-outline w-100">
-          <i class="bi bi-plus-circle"></i> Add Class Level
         </a>
         <a href="{% url 'ap:chapter_add' %}" class="btn-ap btn-ap-outline w-100">
           <i class="bi bi-plus-circle"></i> Add Chapter

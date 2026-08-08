@@ -6,10 +6,10 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <form method="get" class="d-flex gap-2">
-    <select name="subject" class="form-select" style="width:160px;" onchange="this.form.submit()">
-      <option value="">All Subjects</option>
-      {% for s in subjects %}
-      <option value="{{ s.slug }}" {% if s.slug == subject_filter %}selected{% endif %}>{{ s.name }}</option>
+    <select name="class" class="form-select" style="width:160px;" onchange="this.form.submit()">
+      <option value="">All Classes</option>
+      {% for c in classes %}
+      <option value="{{ c.slug }}" {% if c.slug == class_filter %}selected{% endif %}>{{ c.name }}</option>
       {% endfor %}
     </select>
     <div class="input-group" style="width:220px;">
@@ -35,10 +35,10 @@
       <tr>
         <td>
           <div class="fw-semibold">{{ lesson.title }}</div>
-          <div style="font-size:.72rem;color:var(--ink-3);">{{ lesson.chapter.class_level.subject.name }}</div>
+          <div style="font-size:.72rem;color:var(--ink-3);">{{ lesson.chapter.subject.name }}</div>
         </td>
         <td style="font-size:.8rem;color:var(--ink-3);">{{ lesson.chapter.title|truncatewords:4 }}</td>
-        <td><span class="ap-badge ap-badge-blue">Class {{ lesson.chapter.class_level.level }}</span></td>
+        <td><span class="ap-badge ap-badge-blue">{{ lesson.chapter.subject.klass.name }}</span></td>
         <td>
           <a href="https://youtube.com/watch?v={{ lesson.youtube_video_id }}" target="_blank"
              class="ap-badge ap-badge-red" style="text-decoration:none;">

@@ -8,7 +8,8 @@ from django.test import TestCase
 from django.urls import reverse
 from freezegun import freeze_time
 
-from core.models import Chapter, ClassLevel, Comment, Lesson, Subject
+from core.models import Comment, Lesson
+from core.tests.factories import make_content
 
 
 class CommentPostingTests(TestCase):
@@ -17,16 +18,8 @@ class CommentPostingTests(TestCase):
         self.user = User.objects.create_user(username='student', password='pass12345')
         self.client.force_login(self.user)
 
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
-        chapter = Chapter.objects.create(
-            class_level=class_level, title='Intro', slug='intro', order=1,
-        )
-        self.lesson = Lesson.objects.create(
-            chapter=chapter, title='Lesson 1', slug='lesson-1',
-            order=1, youtube_video_id='dQw4w9WgXcQ',
-        )
-        self.url = reverse('lesson_detail', args=['mathematics', 6, 'intro', 'lesson-1'])
+        _, _, _, self.lesson = make_content()
+        self.url = reverse('lesson_detail', args=['class-6', 'maths', 'intro', 'lesson-1'])
 
     def test_posting_a_top_level_comment(self):
         response = self.client.post(self.url, {'comment_body': 'What is a prime number?'})

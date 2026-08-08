@@ -606,11 +606,14 @@
 
   <nav aria-label="Admin sections">
     <div class="sidebar-section">Content</div>
+    <a href="{% url 'ap:coursekind_list' %}" class="sidebar-link {% if page == 'kinds' %}active{% endif %}" {% if page == 'kinds' %}aria-current="page"{% endif %}>
+      <i class="bi bi-tags" aria-hidden="true"></i> Course Kinds
+    </a>
+    <a href="{% url 'ap:class_list' %}" class="sidebar-link {% if page == 'classes' %}active{% endif %}" {% if page == 'classes' %}aria-current="page"{% endif %}>
+      <i class="bi bi-mortarboard" aria-hidden="true"></i> Classes
+    </a>
     <a href="{% url 'ap:subject_list' %}" class="sidebar-link {% if page == 'subjects' %}active{% endif %}" {% if page == 'subjects' %}aria-current="page"{% endif %}>
       <i class="bi bi-journal-bookmark" aria-hidden="true"></i> Subjects
-    </a>
-    <a href="{% url 'ap:classlevel_list' %}" class="sidebar-link {% if page == 'classes' %}active{% endif %}" {% if page == 'classes' %}aria-current="page"{% endif %}>
-      <i class="bi bi-layers" aria-hidden="true"></i> Class Levels
     </a>
     <a href="{% url 'ap:chapter_list' %}" class="sidebar-link {% if page == 'chapters' %}active{% endif %}" {% if page == 'chapters' %}aria-current="page"{% endif %}>
       <i class="bi bi-collection" aria-hidden="true"></i> Chapters

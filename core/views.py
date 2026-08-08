@@ -24,7 +24,7 @@ from .google_oauth import (
     GoogleOAuthError, build_authorization_url, exchange_code_for_claims, generate_state,
 )
 from .models import (
-    Chapter, ClassLevel, Comment, GoogleAccount, Lesson,
+    Chapter, Class, Comment, GoogleAccount, Lesson,
     LessonProgress, Quiz, QuizAttempt, Subject,
 )
 from .ratelimit import get_client_ip
@@ -418,7 +418,7 @@ def _resume_target(user):
     last = (
         LessonProgress.objects
         .filter(user=user, watched=True, watched_at__isnull=False)
-        .select_related('lesson__chapter__class_level__subject')
+        .select_related('lesson__chapter__subject__klass')
         .order_by('-watched_at')
         .first()
     )
@@ -437,7 +437,7 @@ def _resume_target(user):
     )
     if nxt is None:
         return last.lesson
-    # `chapter` already carries class_level/subject from the select_related
+    # `chapter` already carries subject/class from the select_related
     # above; reuse it so template URL building doesn't re-query the chain.
     nxt.chapter = chapter
     return nxt
@@ -445,40 +445,65 @@ def _resume_target(user):
 
 @login_required
 def dashboard(request):
-    # One aggregate query for every subject instead of 2 per subject.
-    subjects = Subject.objects.annotate(
-        total_lessons=Count('class_levels__chapters__lessons', distinct=True),
+    # One aggregate query for every class instead of 2 per class. Only active
+    # classes are offered; is_active is the admin's hide-without-deleting switch.
+    classes = Class.objects.filter(is_active=True).select_related('kind').annotate(
+        total_lessons=Count('subjects__chapters__lessons', distinct=True),
         watched_lessons=Count(
-            'class_levels__chapters__lessons__progress',
+            'subjects__chapters__lessons__progress',
             filter=Q(
-                class_levels__chapters__lessons__progress__user=request.user,
-                class_levels__chapters__lessons__progress__watched=True,
+                subjects__chapters__lessons__progress__user=request.user,
+                subjects__chapters__lessons__progress__watched=True,
             ),
             distinct=True,
         ),
-        class_level_count=Count('class_levels', distinct=True),
+        subject_count=Count('subjects', filter=Q(subjects__is_active=True), distinct=True),
     )
 
-    subject_data = []
+    class_data = []
+    # Every CourseKind the admin creates becomes its own dashboard section.
+    # Keyed by kind id, so the grouping is built in the same pass as the cards.
+    grouped = {}
+    ungrouped = []
     total_all = watched_all = 0
-    for subject in subjects:
-        total = subject.total_lessons
-        watched = subject.watched_lessons
+
+    for klass in classes:
+        total = klass.total_lessons
+        watched = klass.watched_lessons
         total_all += total
         watched_all += watched
-        subject_data.append({
-            'subject': subject,
+        card = {
+            'klass': klass,
             'total_lessons': total,
             'watched_lessons': watched,
-            'class_level_count': subject.class_level_count,
+            'subject_count': klass.subject_count,
             'percent': round((watched / total) * 100) if total else 0,
-        })
+        }
+        class_data.append(card)
+
+        # A hidden kind is treated like no kind at all: is_active means "don't
+        # show this to students", and that has to apply to the heading too.
+        # The classes themselves still appear — they have their own is_active.
+        kind = klass.kind if (klass.kind and klass.kind.is_active) else None
+        if kind is None:
+            ungrouped.append(card)
+        else:
+            grouped.setdefault(kind.id, {'kind': kind, 'classes': []})['classes'].append(card)
+
+    class_groups = sorted(
+        grouped.values(), key=lambda group: (group['kind'].order, group['kind'].name)
+    )
+    if ungrouped:
+        # Trailing catch-all, so a platform with no kinds at all still renders
+        # exactly one section.
+        class_groups.append({'kind': None, 'classes': ungrouped})
 
     today = timezone.localdate()
     day_set = _watched_day_set(request.user)
 
     return render(request, 'core/dashboard.html', {
-        'subject_data': subject_data,
+        'class_data': class_data,
+        'class_groups': class_groups,
         'overall_percent': round((watched_all / total_all) * 100) if total_all else 0,
         'watched_all': watched_all,
         'total_all': total_all,
@@ -497,9 +522,9 @@ def dashboard(request):
 
 
 @login_required
-def class_list(request, subject_slug):
-    subject = get_object_or_404(Subject, slug=subject_slug)
-    class_levels = ClassLevel.objects.filter(subject=subject).annotate(
+def subject_list(request, class_slug):
+    klass = get_object_or_404(Class, slug=class_slug, is_active=True)
+    subjects = list(klass.subjects.filter(is_active=True).annotate(
         chapter_count=Count('chapters', distinct=True),
         lesson_count=Count('chapters__lessons', distinct=True),
         watched_count=Count(
@@ -510,29 +535,43 @@ def class_list(request, subject_slug):
             ),
             distinct=True,
         ),
-    )
+    ))
 
-    class_data = [{
-        'class_level': cl,
-        'chapter_count': cl.chapter_count,
-        'lesson_count': cl.lesson_count,
-        'watched_count': cl.watched_count,
-        'percent': round((cl.watched_count / cl.lesson_count) * 100) if cl.lesson_count else 0,
-    } for cl in class_levels]
+    # A class with a single subject has nothing to choose between — send the
+    # student straight to its chapters instead of rendering a one-card picker.
+    if len(subjects) == 1:
+        return redirect('chapter_list', class_slug=klass.slug, subject_slug=subjects[0].slug)
 
-    return render(request, 'core/class_list.html', {
+    subject_data = [{
         'subject': subject,
-        'class_data': class_data,
+        'chapter_count': subject.chapter_count,
+        'lesson_count': subject.lesson_count,
+        'watched_count': subject.watched_count,
+        'percent': round((subject.watched_count / subject.lesson_count) * 100)
+                   if subject.lesson_count else 0,
+    } for subject in subjects]
+
+    return render(request, 'core/subject_list.html', {
+        'klass': klass,
+        'subject_data': subject_data,
     })
 
 
+def _get_subject(class_slug, subject_slug):
+    """Resolve Class → Subject for the drill-down views, active rows only."""
+    klass = get_object_or_404(Class, slug=class_slug, is_active=True)
+    # Scoped through `klass.subjects` rather than
+    # get_object_or_404(Subject, klass=klass, ...): that helper's own first
+    # parameter is named `klass`, so passing the FK by keyword collides with
+    # it and raises TypeError before any query runs.
+    subject = get_object_or_404(klass.subjects, slug=subject_slug, is_active=True)
+    return klass, subject
+
+
 @login_required
-def chapter_list(request, subject_slug, class_level):
-    subject = get_object_or_404(Subject, slug=subject_slug)
-    class_obj = get_object_or_404(ClassLevel, subject=subject, level=class_level)
-    chapters = Chapter.objects.filter(
-        class_level=class_obj
-    ).prefetch_related('lessons')
+def chapter_list(request, class_slug, subject_slug):
+    klass, subject = _get_subject(class_slug, subject_slug)
+    chapters = Chapter.objects.filter(subject=subject).prefetch_related('lessons')
 
     watched_ids = set(
         LessonProgress.objects.filter(
@@ -541,8 +580,8 @@ def chapter_list(request, subject_slug, class_level):
     )
 
     return render(request, 'core/chapter_list.html', {
+        'klass': klass,
         'subject': subject,
-        'class_obj': class_obj,
         'chapters': chapters,
         'watched_ids': watched_ids,
     })
@@ -556,10 +595,9 @@ def chapter_list(request, subject_slug, class_level):
 # means one student on a shared/NAT'd IP (a school network, for instance)
 # can't be rate-limited by classmates posting at the same time.
 @ratelimit(key='user', rate='10/m', method='POST', block=False)
-def lesson_detail(request, subject_slug, class_level, chapter_slug, lesson_slug):
-    subject = get_object_or_404(Subject, slug=subject_slug)
-    class_obj = get_object_or_404(ClassLevel, subject=subject, level=class_level)
-    chapter = get_object_or_404(Chapter, class_level=class_obj, slug=chapter_slug)
+def lesson_detail(request, class_slug, subject_slug, chapter_slug, lesson_slug):
+    klass, subject = _get_subject(class_slug, subject_slug)
+    chapter = get_object_or_404(Chapter, subject=subject, slug=chapter_slug)
     lesson = get_object_or_404(Lesson, chapter=chapter, slug=lesson_slug)
 
     progress, _ = LessonProgress.objects.get_or_create(
@@ -603,8 +641,8 @@ def lesson_detail(request, subject_slug, class_level, chapter_slug, lesson_slug)
     quiz = getattr(chapter, 'quiz', None)
 
     return render(request, 'core/lesson_detail.html', {
+        'klass': klass,
         'subject': subject,
-        'class_obj': class_obj,
         'chapter': chapter,
         'lesson': lesson,
         'progress': progress,
@@ -631,15 +669,14 @@ def mark_watched(request, lesson_id):
 
 
 @login_required
-def quiz_view(request, subject_slug, class_level, chapter_slug):
-    # Scoped through subject -> class level -> chapter, same as lesson_detail.
-    # Chapter.slug is only unique *within* a class level (see
+def quiz_view(request, class_slug, subject_slug, chapter_slug):
+    # Scoped through class -> subject -> chapter, same as lesson_detail.
+    # Chapter.slug is only unique *within* a subject (see
     # Chapter.Meta.unique_together), so looking it up by slug alone would
     # raise MultipleObjectsReturned as soon as two chapters in different
-    # subjects/classes happened to share a slug.
-    subject = get_object_or_404(Subject, slug=subject_slug)
-    class_obj = get_object_or_404(ClassLevel, subject=subject, level=class_level)
-    chapter = get_object_or_404(Chapter, class_level=class_obj, slug=chapter_slug)
+    # classes happened to share a slug.
+    klass, subject = _get_subject(class_slug, subject_slug)
+    chapter = get_object_or_404(Chapter, subject=subject, slug=chapter_slug)
     quiz = get_object_or_404(Quiz, chapter=chapter)
     # Materialized once: `questions.count()` on an unevaluated queryset would
     # otherwise issue its own SELECT COUNT(*) instead of reusing the rows
@@ -697,7 +734,7 @@ def quiz_view(request, subject_slug, class_level, chapter_slug):
         'questions': questions,
         'chapter': chapter,
         'subject': subject,
-        'class_obj': class_obj,
+        'klass': klass,
     })
 
 
@@ -739,26 +776,39 @@ def search_view(request):
     query = request.GET.get('q', '').strip()
 
     if query:
+        # Every level is searchable, and every level filters on is_active so a
+        # hidden class can't be reached through the search box.
+        classes = Class.objects.filter(
+            Q(name__icontains=query) | Q(description__icontains=query),
+            is_active=True,
+        ).select_related('kind').order_by('order', 'name')
         subjects = Subject.objects.filter(
-            Q(name__icontains=query) | Q(description__icontains=query)
-        ).order_by('name')
-        chapters = Chapter.objects.select_related('class_level__subject').filter(
-            Q(title__icontains=query) | Q(description__icontains=query)
-        ).order_by('class_level__subject__name', 'class_level__level', 'order')
-        lessons = Lesson.objects.select_related('chapter__class_level__subject').filter(
-            Q(title__icontains=query) | Q(description__icontains=query)
-        ).order_by('chapter__class_level__subject__name', 'chapter__order', 'order')
+            Q(name__icontains=query) | Q(description__icontains=query),
+            is_active=True, klass__is_active=True,
+        ).select_related('klass').order_by('klass__name', 'order', 'name')
+        chapters = Chapter.objects.select_related('subject__klass').filter(
+            Q(title__icontains=query) | Q(description__icontains=query),
+            subject__is_active=True, subject__klass__is_active=True,
+        ).order_by('subject__klass__name', 'subject__order', 'order')
+        lessons = Lesson.objects.select_related('chapter__subject__klass').filter(
+            Q(title__icontains=query) | Q(description__icontains=query),
+            chapter__subject__is_active=True, chapter__subject__klass__is_active=True,
+        ).order_by('chapter__subject__klass__name', 'chapter__order', 'order')
     else:
+        classes = Class.objects.none()
         subjects = Subject.objects.none()
         chapters = Chapter.objects.none()
         lessons = Lesson.objects.none()
 
+    classes_page = _search_page(request, classes, 'klpage')
     subjects_page = _search_page(request, subjects, 'spage')
     chapters_page = _search_page(request, chapters, 'cpage')
     lessons_page = _search_page(request, lessons, 'lpage')
 
     return render(request, 'core/search_results.html', {
         'query': query,
+        'classes_page': classes_page,
+        'classes_pager_query': _other_pager_query(request, 'klpage'),
         'subjects_page': subjects_page,
         'subjects_pager_query': _other_pager_query(request, 'spage'),
         'chapters_page': chapters_page,
@@ -766,7 +816,8 @@ def search_view(request):
         'lessons_page': lessons_page,
         'lessons_pager_query': _other_pager_query(request, 'lpage'),
         'total_results': (
-            subjects_page.paginator.count
+            classes_page.paginator.count
+            + subjects_page.paginator.count
             + chapters_page.paginator.count
             + lessons_page.paginator.count
         ),

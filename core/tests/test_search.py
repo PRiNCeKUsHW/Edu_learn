@@ -1,9 +1,10 @@
-"""Student-facing search across subjects, chapters and lessons."""
+"""Student-facing search across classes, subjects, chapters and lessons."""
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from core.models import Chapter, ClassLevel, Lesson, Subject
+from core.models import Chapter, Subject
+from core.tests.factories import make_chapter, make_class, make_lesson, make_subject
 
 
 class SearchTests(TestCase):
@@ -11,22 +12,12 @@ class SearchTests(TestCase):
         self.user = User.objects.create_user(username='student', password='pass12345')
         self.client.force_login(self.user)
 
-        maths = Subject.objects.create(
-            name='Mathematics', slug='mathematics', description='Numbers and equations',
-        )
-        science = Subject.objects.create(name='Science', slug='science')
-
-        maths_cl = ClassLevel.objects.create(subject=maths, level=6)
-        self.chapter = Chapter.objects.create(
-            class_level=maths_cl, title='Whole Numbers', slug='whole-numbers', order=1,
-        )
-        self.lesson = Lesson.objects.create(
-            chapter=self.chapter, title='Introduction to Whole Numbers', slug='intro',
-            order=1, youtube_video_id='dQw4w9WgXcQ',
-        )
-        # A science chapter/lesson to prove search doesn't just return everything.
-        science_cl = ClassLevel.objects.create(subject=science, level=6)
-        Chapter.objects.create(class_level=science_cl, title='Living Things', slug='living-things', order=1)
+        self.klass = make_class('Class 6')
+        maths = make_subject(self.klass, 'Mathematics', description='Numbers and equations')
+        self.chapter = make_chapter(maths, 'Whole Numbers')
+        self.lesson = make_lesson(self.chapter, 'Introduction to Whole Numbers', slug='intro')
+        # A science chapter to prove search doesn't just return everything.
+        make_chapter(make_subject(self.klass, 'Science'), 'Living Things')
 
     def test_requires_login(self):
         self.client.logout()
@@ -66,18 +57,16 @@ class SearchTests(TestCase):
     def test_result_links_point_at_the_right_pages(self):
         response = self.client.get(reverse('search'), {'q': 'whole'})
         self.assertContains(
-            response, reverse('chapter_list', args=['mathematics', 6]),
+            response, reverse('chapter_list', args=['class-6', 'mathematics']),
         )
 
     def test_sections_paginate_independently(self):
         # 12 chapters all matching "chapter n" -> 2 pages at 10/page, while
         # subjects/lessons have few enough results to stay on page 1.
-        cl = ClassLevel.objects.create(
-            subject=Subject.objects.first(), level=7,
-        )
+        subject = make_subject(self.klass, 'History')
         for i in range(12):
             Chapter.objects.create(
-                class_level=cl, title=f'Chapter Search Target {i}', slug=f'target-{i}', order=i,
+                subject=subject, title=f'Chapter Search Target {i}', slug=f'target-{i}', order=i,
             )
         response = self.client.get(reverse('search'), {'q': 'chapter search target', 'cpage': 2})
         self.assertEqual(response.status_code, 200)

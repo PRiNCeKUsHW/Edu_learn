@@ -22,7 +22,7 @@ from django.urls import reverse
 from django_ratelimit.core import _split_rate
 from freezegun import freeze_time
 
-from core.models import Chapter, ClassLevel, Lesson, Subject
+from core.tests.factories import make_content
 
 
 class LoginTests(TestCase):
@@ -124,20 +124,12 @@ class LoginRequiredPermissionTests(TestCase):
     login (never render the page, never 500)."""
 
     def setUp(self):
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
-        chapter = Chapter.objects.create(
-            class_level=class_level, title='Intro', slug='intro', order=1,
-        )
-        self.lesson = Lesson.objects.create(
-            chapter=chapter, title='Lesson 1', slug='lesson-1',
-            order=1, youtube_video_id='dQw4w9WgXcQ',
-        )
+        _, _, _, self.lesson = make_content()
         self.protected_urls = [
             reverse('dashboard'),
-            reverse('class_list', args=['mathematics']),
-            reverse('chapter_list', args=['mathematics', 6]),
-            reverse('lesson_detail', args=['mathematics', 6, 'intro', 'lesson-1']),
+            reverse('subject_list', args=['class-6']),
+            reverse('chapter_list', args=['class-6', 'maths']),
+            reverse('lesson_detail', args=['class-6', 'maths', 'intro', 'lesson-1']),
         ]
 
     def test_anonymous_get_redirects_to_login_with_next(self):

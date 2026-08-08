@@ -1,0 +1,56 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Course Kinds{% endblock %}
+{% block topbar_title %}Course Kinds{% endblock %}
+{% block topbar_sub %}Categories for your classes — you define them all{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end align-items-center mb-4">
+  <a href="{% url 'ap:coursekind_add' %}" class="btn-ap btn-ap-primary">
+    <i class="bi bi-plus-circle"></i> Add Course Kind
+  </a>
+</div>
+
+<div class="ap-card">
+  <div class="ap-table-wrap">
+  <table class="ap-table">
+    <thead>
+      <tr><th>Kind</th><th>Slug</th><th>Classes</th><th>Status</th><th>Order</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for kind in kinds %}
+      <tr>
+        <td>
+          <span class="ap-badge" style="font-size:.85rem;padding:5px 12px;border:1px solid {{ kind.color }};color:{{ kind.color }};">
+            <i class="bi {{ kind.icon }}"></i> {{ kind.name }}
+          </span>
+        </td>
+        <td style="color:var(--ink-3);font-family:'DM Mono',monospace;">{{ kind.slug }}</td>
+        <td><span class="ap-badge ap-badge-gray">{{ kind.class_count }} class{{ kind.class_count|pluralize:"es" }}</span></td>
+        <td>
+          {% if kind.is_active %}
+          <span class="ap-badge ap-badge-green">Active</span>
+          {% else %}
+          <span class="ap-badge ap-badge-gray">Hidden</span>
+          {% endif %}
+        </td>
+        <td style="color:var(--ink-3);font-family:'DM Mono',monospace;">{{ kind.order }}</td>
+        <td>
+          <div class="d-flex gap-2">
+            <a href="{% url 'ap:coursekind_edit' kind.pk %}" class="btn-ap btn-ap-outline btn-ap-sm">
+              <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a href="{% url 'ap:coursekind_delete' kind.pk %}" class="btn-ap btn-ap-danger btn-ap-sm">
+              <i class="bi bi-trash3"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6"><div class="ap-empty"><i class="bi bi-tags"></i><p>No course kinds yet. <a href="{% url 'ap:coursekind_add' %}">Add one</a> — e.g. School, Coaching or Bootcamp.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% include "admin_panel/_pager.html" %}
+</div>
+{% endblock %}

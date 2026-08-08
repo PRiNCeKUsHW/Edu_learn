@@ -30,10 +30,10 @@
 
   <!-- ── Actions ── -->
   <div class="d-flex gap-2 flex-wrap" style="margin-bottom: var(--space-8)">
-    <a class="btn btn-accent flex-grow-1" href="{% url 'quiz' attempt.quiz.chapter.class_level.subject.slug attempt.quiz.chapter.class_level.level attempt.quiz.chapter.slug %}">
+    <a class="btn btn-accent flex-grow-1" href="{% url 'quiz' attempt.quiz.chapter.subject.klass.slug attempt.quiz.chapter.subject.slug attempt.quiz.chapter.slug %}">
       <i class="bi bi-arrow-repeat" aria-hidden="true"></i>Retry quiz
     </a>
-    <a class="btn btn-quiet flex-grow-1" href="{% url 'chapter_list' attempt.quiz.chapter.class_level.subject.slug attempt.quiz.chapter.class_level.level %}">
+    <a class="btn btn-quiet flex-grow-1" href="{% url 'chapter_list' attempt.quiz.chapter.subject.klass.slug attempt.quiz.chapter.subject.slug %}">
       <i class="bi bi-list-ul" aria-hidden="true"></i>Back to chapters
     </a>
   </div>

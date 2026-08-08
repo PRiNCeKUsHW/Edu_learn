@@ -27,11 +27,15 @@ urlpatterns = [
     # Search
     path('search/', views.search_view, name='search'),
 
-    # Curriculum Hierarchy
-    path('learn/<slug:subject_slug>/', views.class_list, name='class_list'),
-    path('learn/<slug:subject_slug>/class-<int:class_level>/', views.chapter_list, name='chapter_list'),
+    # Curriculum Hierarchy: Class → Subject → Chapter → Lesson.
+    #
+    # Every segment is a slug an admin chose. Nothing here assumes what a class
+    # is, so /learn/class-2/maths/…, /learn/upsc/polity/… and
+    # /learn/python-bootcamp/basics/… are all the same code path.
+    path('learn/<slug:class_slug>/', views.subject_list, name='subject_list'),
+    path('learn/<slug:class_slug>/<slug:subject_slug>/', views.chapter_list, name='chapter_list'),
     path(
-        'learn/<slug:subject_slug>/class-<int:class_level>/<slug:chapter_slug>/<slug:lesson_slug>/',
+        'learn/<slug:class_slug>/<slug:subject_slug>/<slug:chapter_slug>/<slug:lesson_slug>/',
         views.lesson_detail,
         name='lesson_detail'
     ),
@@ -39,21 +43,21 @@ urlpatterns = [
     # Actions
     path('lesson/<int:lesson_id>/mark-watched/', views.mark_watched, name='mark_watched'),
 
-    # Quiz — scoped through subject + class level, because Chapter.slug is
-    # only unique *within* a class level (see Chapter.Meta.unique_together).
+    # Quiz — scoped through class + subject, because Chapter.slug is
+    # only unique *within* a subject (see Chapter.Meta.unique_together).
     # A bare `quiz/<slug:chapter_slug>/` lookup can match two different
-    # chapters in two different subjects/classes and raise
-    # MultipleObjectsReturned the moment their slugs collide.
+    # chapters in two different classes and raise MultipleObjectsReturned
+    # the moment their slugs collide.
     #
     # Kept under its own `quiz/` prefix rather than nested under `learn/...`
-    # deliberately: nesting it as `learn/<subject>/class-<n>/<chapter>/quiz/`
+    # deliberately: nesting it as `learn/<class>/<subject>/<chapter>/quiz/`
     # would give it the exact same shape as lesson_detail's
     # `<chapter_slug>/<lesson_slug>/` tail (a chapter slug is a valid slug
     # regex, and so is 'quiz') and lesson_detail is registered first, so
     # every quiz request would be swallowed by lesson_detail with 'quiz'
     # mistaken for a lesson slug.
     path(
-        'quiz/<slug:subject_slug>/class-<int:class_level>/<slug:chapter_slug>/',
+        'quiz/<slug:class_slug>/<slug:subject_slug>/<slug:chapter_slug>/',
         views.quiz_view,
         name='quiz'
     ),

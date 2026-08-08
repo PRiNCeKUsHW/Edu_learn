@@ -1,11 +1,18 @@
 {% extends 'admin_panel/base.html' %}
 {% block title %}Subjects{% endblock %}
 {% block topbar_title %}Subjects{% endblock %}
-{% block topbar_sub %}Manage all subjects{% endblock %}
+{% block topbar_sub %}Divisions inside each class{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <div></div>
+  <form method="get" class="d-flex gap-2">
+    <select name="class" class="form-select" style="width:200px;" onchange="this.form.submit()">
+      <option value="">All Classes</option>
+      {% for c in classes %}
+      <option value="{{ c.slug }}" {% if c.slug == class_filter %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </form>
   <a href="{% url 'ap:subject_add' %}" class="btn-ap btn-ap-primary">
     <i class="bi bi-plus-circle"></i> Add Subject
   </a>
@@ -17,10 +24,10 @@
     <thead>
       <tr>
         <th>Subject</th>
-        <th>Slug</th>
-        <th>Icon</th>
-        <th>Classes</th>
+        <th>Class</th>
+        <th>Chapters</th>
         <th>Lessons</th>
+        <th>Status</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -32,13 +39,22 @@
             <div style="width:36px;height:36px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;">
               <i class="bi {{ subject.icon_class }}"></i>
             </div>
-            <span class="fw-semibold">{{ subject.name }}</span>
+            <div>
+              <div class="fw-semibold">{{ subject.name }}</div>
+              <div style="font-size:.72rem;color:var(--ink-3);font-family:'DM Mono',monospace;">{{ subject.slug }}</div>
+            </div>
           </div>
         </td>
-        <td><code style="font-size:.78rem;color:var(--ink-3);">{{ subject.slug }}</code></td>
-        <td><code style="font-size:.78rem;">{{ subject.icon_class }}</code></td>
-        <td><span class="ap-badge ap-badge-blue">{{ subject.class_count }}</span></td>
+        <td class="fw-semibold">{{ subject.klass.name }}</td>
+        <td><span class="ap-badge ap-badge-gray">{{ subject.chapter_count }}</span></td>
         <td><span class="ap-badge ap-badge-purple">{{ subject.lesson_count }}</span></td>
+        <td>
+          {% if subject.is_active %}
+          <span class="ap-badge ap-badge-green">Active</span>
+          {% else %}
+          <span class="ap-badge ap-badge-gray">Hidden</span>
+          {% endif %}
+        </td>
         <td>
           <div class="d-flex gap-2">
             <a href="{% url 'ap:subject_edit' subject.pk %}" class="btn-ap btn-ap-outline btn-ap-sm">
@@ -51,7 +67,7 @@
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="6"><div class="ap-empty"><i class="bi bi-journal-x"></i><p>No subjects yet. <a href="{% url 'ap:subject_add' %}">Add one</a>.</p></div></td></tr>
+      <tr><td colspan="6"><div class="ap-empty"><i class="bi bi-journal-x"></i><p>No subjects yet. <a href="{% url 'ap:subject_add' %}">Add one</a> under a class.</p></div></td></tr>
       {% endfor %}
     </tbody>
   </table>

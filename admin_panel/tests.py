@@ -16,7 +16,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from core.models import (
-    Chapter, Choice, ClassLevel, Lesson, Question, Quiz, Resource, Subject,
+    Chapter, Choice, Class, CourseKind, Lesson, Question, Quiz, Resource, Subject,
 )
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix='edulearn_test_media_')
@@ -28,7 +28,7 @@ class StaffGateTests(TestCase):
     by hand after the refactor."""
 
     LIST_URL_NAMES = [
-        'ap:dashboard', 'ap:subject_list', 'ap:classlevel_list',
+        'ap:dashboard', 'ap:coursekind_list', 'ap:class_list', 'ap:subject_list',
         'ap:chapter_list', 'ap:lesson_list', 'ap:resource_list',
         'ap:quiz_list', 'ap:user_list', 'ap:comment_list',
     ]
@@ -62,6 +62,7 @@ class SubjectCRUDTests(TestCase):
     def setUp(self):
         self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
         self.client.force_login(self.staff)
+        self.klass = Class.objects.create(name='Class 6', slug='class-6')
 
     def test_add_form_shows_create_not_edit_copy(self):
         response = self.client.get(reverse('ap:subject_add'))
@@ -71,8 +72,8 @@ class SubjectCRUDTests(TestCase):
 
     def test_create_edit_delete_round_trip(self):
         response = self.client.post(reverse('ap:subject_add'), {
-            'name': 'Mathematics', 'slug': 'mathematics',
-            'description': '', 'icon_class': 'bi-calculator',
+            'klass': self.klass.pk, 'name': 'Mathematics', 'slug': 'mathematics',
+            'order': 0, 'description': '', 'icon_class': 'bi-calculator',
         })
         self.assertRedirects(response, reverse('ap:subject_list'))
         subject = Subject.objects.get(slug='mathematics')
@@ -83,8 +84,8 @@ class SubjectCRUDTests(TestCase):
         self.assertContains(edit_get, 'Save Changes')
 
         response = self.client.post(edit_url, {
-            'name': 'Maths', 'slug': 'mathematics',
-            'description': 'Updated', 'icon_class': 'bi-calculator',
+            'klass': self.klass.pk, 'name': 'Maths', 'slug': 'mathematics',
+            'order': 0, 'description': 'Updated', 'icon_class': 'bi-calculator',
         })
         self.assertRedirects(response, reverse('ap:subject_list'))
         subject.refresh_from_db()
@@ -117,12 +118,14 @@ class ChapterSlugAutofillTests(TestCase):
     def setUp(self):
         self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
         self.client.force_login(self.staff)
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        self.class_level = ClassLevel.objects.create(subject=subject, level=6)
+        self.subject = Subject.objects.create(
+            klass=Class.objects.create(name='Class 6', slug='class-6'),
+            name='Mathematics', slug='mathematics',
+        )
 
     def test_blank_slug_on_create_is_auto_generated_from_title(self):
         response = self.client.post(reverse('ap:chapter_add'), {
-            'class_level': self.class_level.pk, 'title': 'Whole Numbers',
+            'subject': self.subject.pk, 'title': 'Whole Numbers',
             'slug': '', 'order': 1, 'description': '',
         })
         self.assertRedirects(response, reverse('ap:chapter_list'))
@@ -131,10 +134,10 @@ class ChapterSlugAutofillTests(TestCase):
 
     def test_blank_slug_on_edit_is_also_auto_generated(self):
         chapter = Chapter.objects.create(
-            class_level=self.class_level, title='Fractions', slug='fractions', order=1,
+            subject=self.subject, title='Fractions', slug='fractions', order=1,
         )
         response = self.client.post(reverse('ap:chapter_edit', args=[chapter.pk]), {
-            'class_level': self.class_level.pk, 'title': 'Fractions and Decimals',
+            'subject': self.subject.pk, 'title': 'Fractions and Decimals',
             'slug': '', 'order': 1, 'description': '',
         })
         self.assertRedirects(response, reverse('ap:chapter_list'))
@@ -143,7 +146,7 @@ class ChapterSlugAutofillTests(TestCase):
 
     def test_explicit_slug_is_kept_as_is(self):
         response = self.client.post(reverse('ap:chapter_add'), {
-            'class_level': self.class_level.pk, 'title': 'Whole Numbers',
+            'subject': self.subject.pk, 'title': 'Whole Numbers',
             'slug': 'wn', 'order': 1, 'description': '',
         })
         self.assertRedirects(response, reverse('ap:chapter_list'))
@@ -151,26 +154,26 @@ class ChapterSlugAutofillTests(TestCase):
 
     def test_colliding_auto_generated_slug_on_create_is_a_form_error_not_a_crash(self):
         Chapter.objects.create(
-            class_level=self.class_level, title='Introduction', slug='introduction', order=1,
+            subject=self.subject, title='Introduction', slug='introduction', order=1,
         )
         response = self.client.post(reverse('ap:chapter_add'), {
-            'class_level': self.class_level.pk, 'title': 'Introduction',
+            'subject': self.subject.pk, 'title': 'Introduction',
             'slug': '', 'order': 2, 'description': '',
         })
         self.assertEqual(response.status_code, 200)  # re-rendered form, not a 500
         self.assertFalse(response.context['form'].is_valid())
         self.assertIn('already exists', str(response.context['form'].errors))
-        self.assertEqual(Chapter.objects.filter(class_level=self.class_level).count(), 1)
+        self.assertEqual(Chapter.objects.filter(subject=self.subject).count(), 1)
 
     def test_colliding_auto_generated_slug_on_edit_is_a_form_error_not_a_crash(self):
         Chapter.objects.create(
-            class_level=self.class_level, title='Fractions', slug='fractions', order=1,
+            subject=self.subject, title='Fractions', slug='fractions', order=1,
         )
         victim = Chapter.objects.create(
-            class_level=self.class_level, title='Something Else', slug='something-else', order=2,
+            subject=self.subject, title='Something Else', slug='something-else', order=2,
         )
         response = self.client.post(reverse('ap:chapter_edit', args=[victim.pk]), {
-            'class_level': self.class_level.pk, 'title': 'Fractions',
+            'subject': self.subject.pk, 'title': 'Fractions',
             'slug': '', 'order': 2, 'description': '',
         })
         self.assertEqual(response.status_code, 200)
@@ -189,9 +192,11 @@ class QuestionChoiceBackURLTests(TestCase):
     def setUp(self):
         self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
         self.client.force_login(self.staff)
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
-        chapter = Chapter.objects.create(class_level=class_level, title='Intro', slug='intro', order=1)
+        subject = Subject.objects.create(
+            klass=Class.objects.create(name='Class 6', slug='class-6'),
+            name='Mathematics', slug='mathematics',
+        )
+        chapter = Chapter.objects.create(subject=subject, title='Intro', slug='intro', order=1)
         self.quiz = Quiz.objects.create(chapter=chapter, title='Intro Quiz', pass_percentage=50)
 
     def test_add_question_redirects_to_choice_add_not_quiz_detail(self):
@@ -242,9 +247,11 @@ class ResourceFileCleanupTests(TestCase):
     def setUp(self):
         self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
         self.client.force_login(self.staff)
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
-        chapter = Chapter.objects.create(class_level=class_level, title='Intro', slug='intro', order=1)
+        subject = Subject.objects.create(
+            klass=Class.objects.create(name='Class 6', slug='class-6'),
+            name='Mathematics', slug='mathematics',
+        )
+        chapter = Chapter.objects.create(subject=subject, title='Intro', slug='intro', order=1)
         self.lesson = Lesson.objects.create(
             chapter=chapter, title='Lesson 1', slug='lesson-1',
             order=1, youtube_video_id='dQw4w9WgXcQ',
@@ -303,39 +310,116 @@ class UserToggleGuardTests(TestCase):
         self.assertTrue(any('attempted to deactivate admin account' in m for m in logs.output))
 
 
-class ClassLevelCRUDTests(TestCase):
+class CourseKindCRUDTests(TestCase):
     def setUp(self):
         self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
         self.client.force_login(self.staff)
-        self.subject = Subject.objects.create(name='Mathematics', slug='mathematics')
 
     def test_create_edit_delete_round_trip(self):
-        response = self.client.post(reverse('ap:classlevel_add'), {
-            'subject': self.subject.pk, 'level': 6, 'description': '',
+        response = self.client.post(reverse('ap:coursekind_add'), {
+            'name': 'Coaching', 'slug': '', 'icon': 'bi-rocket-takeoff',
+            'color': '#ef4444', 'order': 1, 'is_active': 'on', 'description': '',
         })
-        self.assertRedirects(response, reverse('ap:classlevel_list'))
-        class_level = ClassLevel.objects.get(subject=self.subject, level=6)
+        self.assertRedirects(response, reverse('ap:coursekind_list'))
+        kind = CourseKind.objects.get(name='Coaching')
+        # Blank slug falls back to the name (SlugFromNameMixin.clean).
+        self.assertEqual(kind.slug, 'coaching')
 
-        response = self.client.post(reverse('ap:classlevel_edit', args=[class_level.pk]), {
-            'subject': self.subject.pk, 'level': 7, 'description': 'Updated',
+        response = self.client.post(reverse('ap:coursekind_edit', args=[kind.pk]), {
+            'name': 'Coaching Batch', 'slug': 'coaching', 'icon': 'bi-rocket-takeoff',
+            'color': '#ef4444', 'order': 1, 'is_active': 'on', 'description': 'Updated',
         })
-        self.assertRedirects(response, reverse('ap:classlevel_list'))
-        class_level.refresh_from_db()
-        self.assertEqual(class_level.level, 7)
+        self.assertRedirects(response, reverse('ap:coursekind_list'))
+        kind.refresh_from_db()
+        self.assertEqual(kind.name, 'Coaching Batch')
 
-        response = self.client.post(reverse('ap:classlevel_delete', args=[class_level.pk]))
-        self.assertRedirects(response, reverse('ap:classlevel_list'))
-        self.assertFalse(ClassLevel.objects.filter(pk=class_level.pk).exists())
+        response = self.client.post(reverse('ap:coursekind_delete', args=[kind.pk]))
+        self.assertRedirects(response, reverse('ap:coursekind_list'))
+        self.assertFalse(CourseKind.objects.filter(pk=kind.pk).exists())
+
+    def test_an_invalid_colour_is_a_form_error(self):
+        response = self.client.post(reverse('ap:coursekind_add'), {
+            'name': 'Workshop', 'slug': '', 'icon': 'bi-tools',
+            'color': 'red', 'order': 0, 'is_active': 'on', 'description': '',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['form'].is_valid())
+        self.assertIn('color', response.context['form'].errors)
+
+
+class ClassCRUDTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
+        self.client.force_login(self.staff)
+        self.kind = CourseKind.objects.create(name='School', slug='school')
+
+    def _payload(self, **overrides):
+        payload = {
+            'name': 'Class 2', 'slug': '', 'kind': self.kind.pk,
+            'icon': 'bi-mortarboard', 'order': 0, 'is_active': 'on', 'description': '',
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_create_edit_delete_round_trip(self):
+        response = self.client.post(reverse('ap:class_add'), self._payload())
+        self.assertRedirects(response, reverse('ap:class_list'))
+        klass = Class.objects.get(name='Class 2')
+        self.assertEqual(klass.slug, 'class-2')
+        self.assertEqual(klass.kind, self.kind)
+
+        response = self.client.post(
+            reverse('ap:class_edit', args=[klass.pk]),
+            self._payload(name='Class Two', slug='class-2'),
+        )
+        self.assertRedirects(response, reverse('ap:class_list'))
+        klass.refresh_from_db()
+        self.assertEqual(klass.name, 'Class Two')
+
+        response = self.client.post(reverse('ap:class_delete', args=[klass.pk]))
+        self.assertRedirects(response, reverse('ap:class_list'))
+        self.assertFalse(Class.objects.filter(pk=klass.pk).exists())
+
+    def test_kind_is_optional(self):
+        response = self.client.post(reverse('ap:class_add'), self._payload(
+            name='UPSC Batch', kind='',
+        ))
+        self.assertRedirects(response, reverse('ap:class_list'))
+        self.assertIsNone(Class.objects.get(name='UPSC Batch').kind)
+
+    def test_any_name_is_accepted(self):
+        for name in ('Nursery', 'IIT JEE 2027', 'Java Backend', 'Kathak Level 1'):
+            with self.subTest(name=name):
+                response = self.client.post(reverse('ap:class_add'), self._payload(name=name))
+                self.assertRedirects(response, reverse('ap:class_list'))
+                self.assertTrue(Class.objects.filter(name=name).exists())
+
+    def test_duplicate_slug_is_a_form_error_not_a_crash(self):
+        self.client.post(reverse('ap:class_add'), self._payload())
+        response = self.client.post(reverse('ap:class_add'), self._payload())
+        self.assertEqual(response.status_code, 200)  # re-rendered form, not a 500
+        self.assertFalse(response.context['form'].is_valid())
+        self.assertEqual(Class.objects.filter(slug='class-2').count(), 1)
+
+    def test_deleting_a_class_takes_its_subjects_with_it(self):
+        response = self.client.post(reverse('ap:class_add'), self._payload())
+        klass = Class.objects.get(slug='class-2')
+        Subject.objects.create(klass=klass, name='Maths', slug='maths')
+
+        self.client.post(reverse('ap:class_delete', args=[klass.pk]))
+        self.assertFalse(Subject.objects.filter(slug='maths').exists())
 
 
 class QuizCRUDTests(TestCase):
     def setUp(self):
         self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
         self.client.force_login(self.staff)
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
+        subject = Subject.objects.create(
+            klass=Class.objects.create(name='Class 6', slug='class-6'),
+            name='Mathematics', slug='mathematics',
+        )
         self.chapter = Chapter.objects.create(
-            class_level=class_level, title='Intro', slug='intro', order=1,
+            subject=subject, title='Intro', slug='intro', order=1,
         )
 
     def test_create_edit_delete_round_trip(self):
@@ -367,10 +451,12 @@ class LessonCRUDTests(TestCase):
     def setUp(self):
         self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
         self.client.force_login(self.staff)
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
+        subject = Subject.objects.create(
+            klass=Class.objects.create(name='Class 6', slug='class-6'),
+            name='Mathematics', slug='mathematics',
+        )
         self.chapter = Chapter.objects.create(
-            class_level=class_level, title='Intro', slug='intro', order=1,
+            subject=subject, title='Intro', slug='intro', order=1,
         )
 
     def test_create_edit_delete_round_trip(self):
@@ -400,15 +486,17 @@ class LessonSlugCollisionTests(TestCase):
     """Same bug, same fix, as ChapterSlugAutofillTests' collision tests —
     Lesson.slug is also required=False with a clean()-time auto-fill
     (unique_together is ('chapter', 'slug') here instead of
-    ('class_level', 'slug'))."""
+    ('subject', 'slug'))."""
 
     def setUp(self):
         self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
         self.client.force_login(self.staff)
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
+        subject = Subject.objects.create(
+            klass=Class.objects.create(name='Class 6', slug='class-6'),
+            name='Mathematics', slug='mathematics',
+        )
         self.chapter = Chapter.objects.create(
-            class_level=class_level, title='Intro', slug='intro', order=1,
+            subject=subject, title='Intro', slug='intro', order=1,
         )
 
     def test_colliding_auto_generated_slug_on_create_is_a_form_error_not_a_crash(self):
@@ -453,7 +541,10 @@ class WriteActionPermissionTests(TestCase):
     every add/edit/delete endpoint, not just the list views."""
 
     def setUp(self):
-        self.subject = Subject.objects.create(name='Mathematics', slug='mathematics')
+        self.subject = Subject.objects.create(
+            klass=Class.objects.create(name='Class 6', slug='class-6'),
+            name='Mathematics', slug='mathematics',
+        )
         self.student = User.objects.create_user(username='student', password='pass12345')
 
     def test_non_staff_cannot_create_a_subject(self):

@@ -6,17 +6,16 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <form method="get" class="d-flex gap-2">
-    <select name="subject" class="form-select" style="width:160px;" onchange="this.form.submit()">
-      <option value="">All Subjects</option>
-      {% for s in subjects %}
-      <option value="{{ s.slug }}" {% if s.slug == subject_filter %}selected{% endif %}>{{ s.name }}</option>
+    <select name="class" class="form-select" style="width:170px;" onchange="this.form.submit()">
+      <option value="">All Classes</option>
+      {% for c in classes %}
+      <option value="{{ c.slug }}" {% if c.slug == class_filter %}selected{% endif %}>{{ c.name }}</option>
       {% endfor %}
     </select>
-    <select name="level" class="form-select" style="width:140px;" onchange="this.form.submit()">
-      <option value="">All Classes</option>
-      {% for i in "6789101112" %}{% endfor %}
-      {% for i in level_choices %}
-      <option value="{{ i }}" {% if i|stringformat:'s' == level_filter %}selected{% endif %}>Class {{ i }}</option>
+    <select name="subject" class="form-select" style="width:220px;" onchange="this.form.submit()">
+      <option value="">All Subjects</option>
+      {% for sub in subject_choices %}
+      <option value="{{ sub.pk }}" {% if sub.pk|stringformat:'s' == subject_filter %}selected{% endif %}>{{ sub.klass.name }} — {{ sub.name }}</option>
       {% endfor %}
     </select>
   </form>
@@ -36,8 +35,8 @@
       <tr>
         <td><span class="ap-badge ap-badge-gray" style="font-family:'DM Mono',monospace;">{{ chapter.order }}</span></td>
         <td class="fw-semibold">{{ chapter.title }}</td>
-        <td><span class="ap-badge ap-badge-blue">Class {{ chapter.class_level.level }}</span></td>
-        <td style="color:var(--ink-3);">{{ chapter.class_level.subject.name }}</td>
+        <td><span class="ap-badge ap-badge-blue">{{ chapter.subject.klass.name }}</span></td>
+        <td style="color:var(--ink-3);">{{ chapter.subject.name }}</td>
         <td><span class="ap-badge ap-badge-purple">{{ chapter.lesson_count }}</span></td>
         <td>
           <div class="d-flex gap-2">

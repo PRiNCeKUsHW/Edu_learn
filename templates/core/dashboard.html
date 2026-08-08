@@ -10,18 +10,18 @@
       {% if streak > 1 %}Welcome back, {{ user.first_name|default:user.username }}.{% else %}Hello, {{ user.first_name|default:user.username }}.{% endif %}
     </h1>
     <p class="t-lead" style="margin-bottom: 0">
-      {% if watched_all %}You've completed {{ watched_all }} of {{ total_all }} lesson{{ total_all|pluralize }} so far.{% else %}Choose a subject below to begin.{% endif %}
+      {% if watched_all %}You've completed {{ watched_all }} of {{ total_all }} lesson{{ total_all|pluralize }} so far.{% else %}Choose a class below to begin.{% endif %}
     </p>
   </header>
 
   <!-- ── Resume ── -->
   {% if resume_lesson %}
-  <a class="card-link reveal reveal-2 d-flex align-items-center gap-3" style="padding: var(--space-4) var(--space-5); margin-bottom: var(--space-6)" href="{% url 'lesson_detail' resume_lesson.chapter.class_level.subject.slug resume_lesson.chapter.class_level.level resume_lesson.chapter.slug resume_lesson.slug %}">
+  <a class="card-link reveal reveal-2 d-flex align-items-center gap-3" style="padding: var(--space-4) var(--space-5); margin-bottom: var(--space-6)" href="{% url 'lesson_detail' resume_lesson.chapter.subject.klass.slug resume_lesson.chapter.subject.slug resume_lesson.chapter.slug resume_lesson.slug %}">
     <span class="avatar avatar-lg" aria-hidden="true"><i class="bi bi-play-fill" style="font-size: 1.25rem"></i></span>
     <span class="flex-grow-1" style="min-width: 0">
       <span class="t-eyebrow d-block">Pick up where you left off</span>
       <span class="d-block truncate-1" style="font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem">{{ resume_lesson.title }}</span>
-      <span class="t-meta truncate-1">{{ resume_lesson.chapter.class_level.subject.name }} · Class {{ resume_lesson.chapter.class_level.level }} · {{ resume_lesson.chapter.title }}</span>
+      <span class="t-meta truncate-1">{{ resume_lesson.chapter.subject.klass.name }} · {{ resume_lesson.chapter.subject.name }} · {{ resume_lesson.chapter.title }}</span>
     </span>
     <i class="bi bi-arrow-right text-muted-ink d-none d-sm-block" aria-hidden="true"></i>
   </a>
@@ -65,46 +65,34 @@
     </div>
   </div>
 
-  <!-- ── Subjects ── -->
-  <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Your subjects</div>
-
-  <div class="row g-3">
-    {% for item in subject_data %}
-    <div class="col-md-6">
-      <a class="card-link h-100 d-flex align-items-center gap-3 reveal reveal-4" style="padding: var(--space-5)" href="{% url 'class_list' item.subject.slug %}">
-
-        <span class="ring {% if item.percent == 100 %}ring-complete{% endif %}" style="--pct: {{ item.percent }}" role="img" aria-label="{{ item.percent }} percent complete">
-          <span class="ring-label">{{ item.percent }}%</span>
-        </span>
-
-        <span class="flex-grow-1" style="min-width: 0">
-          <span class="d-flex align-items-center gap-2" style="margin-bottom: 0.15rem">
-            <i class="bi {{ item.subject.icon_class }} text-accent" aria-hidden="true"></i>
-            <span style="font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem">{{ item.subject.name }}</span>
-          </span>
-          <span class="t-meta d-block">
-            {{ item.class_level_count }} class level{{ item.class_level_count|pluralize }} ·
-            {{ item.watched_lessons }}/{{ item.total_lessons }} lesson{{ item.total_lessons|pluralize }}
-          </span>
-          {% if item.subject.description %}
-          <span class="t-meta d-block truncate-1" style="margin-top: 0.2rem">{{ item.subject.description }}</span>
-          {% endif %}
-        </span>
-
-        <i class="bi bi-chevron-right text-muted-ink d-none d-sm-block" aria-hidden="true"></i>
-      </a>
+  <!-- ── Classes, one section per course kind ── -->
+  {% for group in class_groups %}
+  <section aria-labelledby="group{{ forloop.counter }}" style="margin-bottom: var(--space-7)">
+    <div class="d-flex align-items-center gap-2" style="margin-bottom: var(--space-3)">
+      {% if group.kind %}
+      <i class="bi {{ group.kind.icon }}" style="color: {{ group.kind.color }}" aria-hidden="true"></i>
+      <span id="group{{ forloop.counter }}" class="t-eyebrow">{{ group.kind.name }}</span>
+      {% else %}
+      <span id="group{{ forloop.counter }}" class="t-eyebrow">Your classes</span>
+      {% endif %}
+      <span class="chip">{{ group.classes|length }}</span>
     </div>
 
-    {% empty %}
-    <div class="col-12">
-      <div class="empty">
-        <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
-        <div style="color: var(--text); font-weight: 600">No subjects yet</div>
-        <div class="t-meta" style="margin-top: 0.25rem">Content is being added. Check back soon.</div>
-      </div>
+    <div class="row g-3">
+      {% for item in group.classes %}
+      {% include 'core/_class_card.html' %}
+      {% endfor %}
     </div>
-    {% endfor %}
+  </section>
+
+  {% empty %}
+  <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Your classes</div>
+  <div class="empty">
+    <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
+    <div style="color: var(--text); font-weight: 600">Nothing here yet</div>
+    <div class="t-meta" style="margin-top: 0.25rem">Content is being added. Check back soon.</div>
   </div>
+  {% endfor %}
 
 </div>
 {% endblock %}

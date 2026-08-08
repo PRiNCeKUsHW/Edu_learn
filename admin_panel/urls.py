@@ -7,17 +7,23 @@ urlpatterns = [
     # Dashboard
     path('', views.dashboard, name='dashboard'),
 
+    # Course Kinds
+    path('kinds/', views.CourseKindListView.as_view(), name='coursekind_list'),
+    path('kinds/add/', views.CourseKindCreateView.as_view(), name='coursekind_add'),
+    path('kinds/<int:pk>/edit/', views.CourseKindUpdateView.as_view(), name='coursekind_edit'),
+    path('kinds/<int:pk>/delete/', views.CourseKindDeleteView.as_view(), name='coursekind_delete'),
+
+    # Classes
+    path('classes/', views.ClassListView.as_view(), name='class_list'),
+    path('classes/add/', views.ClassCreateView.as_view(), name='class_add'),
+    path('classes/<int:pk>/edit/', views.ClassUpdateView.as_view(), name='class_edit'),
+    path('classes/<int:pk>/delete/', views.ClassDeleteView.as_view(), name='class_delete'),
+
     # Subjects
     path('subjects/', views.SubjectListView.as_view(), name='subject_list'),
     path('subjects/add/', views.SubjectCreateView.as_view(), name='subject_add'),
     path('subjects/<int:pk>/edit/', views.SubjectUpdateView.as_view(), name='subject_edit'),
     path('subjects/<int:pk>/delete/', views.SubjectDeleteView.as_view(), name='subject_delete'),
-
-    # Class Levels
-    path('classes/', views.ClassLevelListView.as_view(), name='classlevel_list'),
-    path('classes/add/', views.ClassLevelCreateView.as_view(), name='classlevel_add'),
-    path('classes/<int:pk>/edit/', views.ClassLevelUpdateView.as_view(), name='classlevel_edit'),
-    path('classes/<int:pk>/delete/', views.ClassLevelDeleteView.as_view(), name='classlevel_delete'),
 
     # Chapters
     path('chapters/', views.ChapterListView.as_view(), name='chapter_list'),

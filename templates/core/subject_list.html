@@ -1,37 +1,42 @@
 {% extends 'base.html' %}
-{% block title %}{{ subject.name }} — EduLearn{% endblock %}
+{% block title %}{{ klass.name }} — EduLearn{% endblock %}
 
 {% block content %}
 <div class="container-page" style="padding-top: var(--space-6); padding-bottom: var(--space-8)">
 
   <ol class="crumbs">
     <li><a href="{% url 'dashboard' %}">Home</a></li>
-    <li class="is-current">{{ subject.name }}</li>
+    <li class="is-current">{{ klass.name }}</li>
   </ol>
 
   <!-- ── Header ── -->
   <header class="reveal reveal-1" style="margin-bottom: var(--space-7)">
-    <div class="d-flex align-items-center gap-2" style="margin-bottom: 0.4rem">
-      <i class="bi {{ subject.icon_class }} text-accent" style="font-size: 1.25rem" aria-hidden="true"></i>
-      <span class="t-eyebrow">Subject</span>
+    <div class="d-flex align-items-center gap-2 flex-wrap" style="margin-bottom: 0.4rem">
+      <i class="bi {{ klass.icon }} text-accent" style="font-size: 1.25rem" aria-hidden="true"></i>
+      {% if klass.kind %}
+      <span class="chip" style="border-color: {{ klass.kind.color }}; color: {{ klass.kind.color }}">
+        <i class="bi {{ klass.kind.icon }}" aria-hidden="true"></i>{{ klass.kind.name }}
+      </span>
+      {% endif %}
     </div>
-    <h1 class="t-h1" style="margin-bottom: 0.4rem">{{ subject.name }}</h1>
-    {% if subject.description %}
-    <p class="t-lead" style="max-width: 60ch; margin-bottom: 0">{{ subject.description }}</p>
+    <h1 class="t-h1" style="margin-bottom: 0.4rem">{{ klass.name }}</h1>
+    {% if klass.description %}
+    <p class="t-lead" style="max-width: 60ch; margin-bottom: 0">{{ klass.description }}</p>
     {% endif %}
   </header>
 
-  <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Select your class</div>
+  <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Choose a subject</div>
 
   <div class="row g-3">
-    {% for item in class_data %}
+    {% for item in subject_data %}
     <div class="col-sm-6 col-lg-4">
-      <a class="card-link h-100 reveal reveal-2" style="padding: var(--space-5)" href="{% url 'chapter_list' subject.slug item.class_level.level %}">
+      <a class="card-link h-100 reveal reveal-2" style="padding: var(--space-5)" href="{% url 'chapter_list' klass.slug item.subject.slug %}">
 
         <span class="d-flex align-items-start justify-content-between gap-3">
           <span>
-            <span class="d-block" style="font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; letter-spacing: -0.02em">
-              Class {{ item.class_level.level }}
+            <span class="d-flex align-items-center gap-2" style="font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; letter-spacing: -0.02em">
+              <i class="bi {{ item.subject.icon_class }} text-accent" style="font-size: 1rem" aria-hidden="true"></i>
+              {{ item.subject.name }}
             </span>
             <span class="t-meta d-block" style="margin-top: 0.15rem">
               {{ item.chapter_count }} chapter{{ item.chapter_count|pluralize }} · {{ item.lesson_count }} lesson{{ item.lesson_count|pluralize }}
@@ -45,8 +50,8 @@
           {% endif %}
         </span>
 
-        {% if item.class_level.description %}
-        <span class="t-meta d-block truncate-2" style="margin-top: var(--space-3)">{{ item.class_level.description }}</span>
+        {% if item.subject.description %}
+        <span class="t-meta d-block truncate-2" style="margin-top: var(--space-3)">{{ item.subject.description }}</span>
         {% endif %}
 
         {% if item.lesson_count %}
@@ -66,7 +71,7 @@
       <div class="empty">
         <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
         <div style="color: var(--text); font-weight: 600">Nothing here yet</div>
-        <div class="t-meta" style="margin-top: 0.25rem">No class levels have been added for {{ subject.name }}.</div>
+        <div class="t-meta" style="margin-top: 0.25rem">No subjects have been added for {{ klass.name }}.</div>
       </div>
     </div>
     {% endfor %}

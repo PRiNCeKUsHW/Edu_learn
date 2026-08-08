@@ -8,22 +8,15 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from core.models import Chapter, ClassLevel, Lesson, LessonProgress, Subject
+from core.models import Lesson, LessonProgress
+from core.tests.factories import make_chapter, make_class, make_content, make_subject
 
 
 class MarkWatchedTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='student', password='pass12345')
         self.client.force_login(self.user)
-        subject = Subject.objects.create(name='Mathematics', slug='mathematics')
-        class_level = ClassLevel.objects.create(subject=subject, level=6)
-        chapter = Chapter.objects.create(
-            class_level=class_level, title='Intro', slug='intro', order=1,
-        )
-        self.lesson = Lesson.objects.create(
-            chapter=chapter, title='Lesson 1', slug='lesson-1',
-            order=1, youtube_video_id='dQw4w9WgXcQ',
-        )
+        _, _, _, self.lesson = make_content()
         self.url = reverse('mark_watched', args=[self.lesson.pk])
 
     def test_toggling_on_sets_watched_with_a_timestamp(self):
@@ -57,11 +50,8 @@ class DashboardCalculationTests(TestCase):
         self.user = User.objects.create_user(username='student', password='pass12345')
         self.client.force_login(self.user)
 
-        maths = Subject.objects.create(name='Mathematics', slug='mathematics')
-        maths_cl = ClassLevel.objects.create(subject=maths, level=6)
-        maths_chapter = Chapter.objects.create(
-            class_level=maths_cl, title='Numbers', slug='numbers', order=1,
-        )
+        klass = make_class('Class 6')
+        maths_chapter = make_chapter(make_subject(klass, 'Maths'), 'Numbers')
         self.lessons = [
             Lesson.objects.create(
                 chapter=maths_chapter, title=f'Lesson {i}', slug=f'lesson-{i}',
@@ -70,11 +60,10 @@ class DashboardCalculationTests(TestCase):
             for i in range(1, 5)  # 4 lessons total
         ]
 
-        science = Subject.objects.create(name='Science', slug='science')
-        science_cl = ClassLevel.objects.create(subject=science, level=6)
-        Chapter.objects.create(class_level=science_cl, title='Empty', slug='empty', order=1)
-        # Science has a chapter but no lessons — must not raise a
+        # A second class holding a chapter but no lessons — must not raise a
         # division-by-zero when computing its percentage.
+        self.empty_class = make_class('Class 7')
+        make_chapter(make_subject(self.empty_class, 'Science'), 'Empty')
 
         # Watch 3 of the 4 maths lessons -> 75% overall (4 total lessons project-wide).
         for lesson in self.lessons[:3]:
@@ -82,16 +71,16 @@ class DashboardCalculationTests(TestCase):
                 user=self.user, lesson=lesson, watched=True, watched_at=timezone.now(),
             )
 
-    def test_overall_and_per_subject_percentages(self):
+    def test_overall_and_per_class_percentages(self):
         response = self.client.get(reverse('dashboard'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['watched_all'], 3)
         self.assertEqual(response.context['total_all'], 4)
         self.assertEqual(response.context['overall_percent'], 75)
 
-        by_subject = {row['subject'].slug: row for row in response.context['subject_data']}
-        self.assertEqual(by_subject['mathematics']['percent'], 75)
-        self.assertEqual(by_subject['science']['percent'], 0)  # no lessons, not a crash
+        by_class = {row['klass'].slug: row for row in response.context['class_data']}
+        self.assertEqual(by_class['class-6']['percent'], 75)
+        self.assertEqual(by_class['class-7']['percent'], 0)  # no lessons, not a crash
 
     def test_streak_counts_consecutive_days_ending_today(self):
         # Re-mark across three consecutive days, including today.

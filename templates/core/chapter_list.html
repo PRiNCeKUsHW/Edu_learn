@@ -1,19 +1,19 @@
 {% extends 'base.html' %}
-{% block title %}Class {{ class_obj.level }} {{ subject.name }} — EduLearn{% endblock %}
+{% block title %}{{ subject.name }} — {{ klass.name }} — EduLearn{% endblock %}
 
 {% block content %}
 <div class="container-page" style="padding-top: var(--space-6); padding-bottom: var(--space-8)">
 
   <ol class="crumbs">
     <li><a href="{% url 'dashboard' %}">Home</a></li>
-    <li><a href="{% url 'class_list' subject.slug %}">{{ subject.name }}</a></li>
-    <li class="is-current">Class {{ class_obj.level }}</li>
+    <li><a href="{% url 'subject_list' klass.slug %}">{{ klass.name }}</a></li>
+    <li class="is-current">{{ subject.name }}</li>
   </ol>
 
   <!-- ── Header ── -->
   <header class="reveal reveal-1" style="margin-bottom: var(--space-6)">
-    <span class="t-eyebrow">{{ subject.name }}</span>
-    <h1 class="t-h1" style="margin-top: 0.3rem; margin-bottom: 0.4rem">Class {{ class_obj.level }}</h1>
+    <span class="t-eyebrow">{{ klass.name }}</span>
+    <h1 class="t-h1" style="margin-top: 0.3rem; margin-bottom: 0.4rem">{{ subject.name }}</h1>
     <p class="t-meta" style="margin-bottom: 0">{{ chapters|length }} chapter{{ chapters|length|pluralize }}</p>
   </header>
 
@@ -38,7 +38,7 @@
           {% endif %}
 
           {% for lesson in chapter.lessons.all %}
-          <a class="row-link" style="border-top: 1px solid var(--border); border-radius: 0" href="{% url 'lesson_detail' subject.slug class_obj.level chapter.slug lesson.slug %}">
+          <a class="row-link" style="border-top: 1px solid var(--border); border-radius: 0" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug lesson.slug %}">
             {% if lesson.id in watched_ids %}
             <i class="bi bi-check-circle-fill text-success-ink" style="font-size: 1.1rem" aria-hidden="true"></i>
             {% else %}
@@ -68,7 +68,7 @@
               <span class="d-block" style="font-weight: 600; font-size: 0.9375rem">Chapter quiz</span>
               <span class="t-meta">Pass mark {{ chapter.quiz.pass_percentage }}%</span>
             </span>
-            <a class="btn btn-soft btn-sm-q" href="{% url 'quiz' subject.slug class_obj.level chapter.slug %}">
+            <a class="btn btn-soft btn-sm-q" href="{% url 'quiz' klass.slug subject.slug chapter.slug %}">
               <i class="bi bi-patch-question" aria-hidden="true"></i>Take quiz
             </a>
           </div>
@@ -84,7 +84,7 @@
   <div class="empty">
     <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
     <div style="color: var(--text); font-weight: 600">No chapters yet</div>
-    <div class="t-meta" style="margin-top: 0.25rem">Chapters for this class haven't been added.</div>
+    <div class="t-meta" style="margin-top: 0.25rem">Chapters for {{ subject.name }} haven't been added.</div>
   </div>
   {% endif %}
 
