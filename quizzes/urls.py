@@ -12,4 +12,9 @@ urlpatterns = [
         views.quiz_view,
         name='quiz'
     ),
+    path(
+        'quiz/<slug:class_slug>/<slug:subject_slug>/<slug:chapter_slug>/analysis/',
+        views.quiz_analysis_view,
+        name='quiz_analysis'
+    ),
 ]

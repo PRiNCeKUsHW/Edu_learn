@@ -16,7 +16,8 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from curriculum.models import Chapter, Class, CourseKind, Lesson, Resource, Subject
-from quizzes.models import Choice, Question, Quiz
+from progress.models import LessonProgress
+from quizzes.models import Choice, Question, Quiz, QuizAttempt
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix='edulearn_test_media_')
 
@@ -570,4 +571,60 @@ class WriteActionPermissionTests(TestCase):
             'name': 'Physics', 'slug': 'physics', 'description': '', 'icon_class': 'bi-book',
         })
         self.assertNotEqual(response.status_code, 200)
+
+
+class StudentReportTests(TestCase):
+    """The per-student report card: staff-only, and shows the student's
+    full quiz history (not just the latest attempt) plus lesson progress."""
+
+    def setUp(self):
+        self.staff = User.objects.create_user(username='staff', password='pass12345', is_staff=True)
+        self.student = User.objects.create_user(username='student', password='pass12345')
+
+        klass = Class.objects.create(name='Class 6', slug='class-6', is_active=True)
+        subject = Subject.objects.create(klass=klass, name='Maths', slug='maths', is_active=True)
+        chapter = Chapter.objects.create(subject=subject, title='Numbers', slug='numbers', order=1)
+        self.lesson = Lesson.objects.create(
+            chapter=chapter, title='Lesson 1', slug='lesson-1', order=1,
+            youtube_video_id='dQw4w9WgXcQ',
+        )
+        self.quiz = Quiz.objects.create(chapter=chapter, title='Numbers Quiz', pass_percentage=60)
+
+        LessonProgress.objects.create(user=self.student, lesson=self.lesson, watched=True)
+        QuizAttempt.objects.create(user=self.student, quiz=self.quiz, score=1, total=2, passed=False)
+        QuizAttempt.objects.create(user=self.student, quiz=self.quiz, score=2, total=2, passed=True)
+
+        self.url = reverse('ap:user_report', args=[self.student.pk])
+
+    def test_staff_can_view_the_report(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_staff_is_turned_away(self):
+        self.client.force_login(self.student)
+        self.assertNotEqual(self.client.get(self.url).status_code, 200)
+
+    def test_anonymous_is_turned_away(self):
+        self.assertNotEqual(self.client.get(self.url).status_code, 200)
+
+    def test_shows_full_quiz_history_not_just_the_latest(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(self.url)
+        self.assertEqual(list(response.context['attempts']).__len__(), 2)
+        self.assertContains(response, '1/2')
+        self.assertContains(response, '2/2')
+
+    def test_quizzes_passed_counts_distinct_quizzes_not_attempts(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(self.url)
+        self.assertEqual(response.context['quizzes_passed'], 1)
+
+    def test_lesson_progress_percent_for_the_students_class(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(self.url)
+        progress = response.context['class_progress'][0]
+        self.assertEqual(progress['watched_lessons'], 1)
+        self.assertEqual(progress['total_lessons'], 1)
+        self.assertEqual(progress['percent'], 100)
         self.assertFalse(Subject.objects.filter(slug='physics').exists())

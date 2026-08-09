@@ -148,9 +148,20 @@
         <p class="t-meta" style="margin-bottom: var(--space-4)">
           {{ quiz.total_questions }} question{{ quiz.total_questions|pluralize }} · pass mark {{ quiz.pass_percentage }}%
         </p>
+        {% if quiz_attempted %}
+        <div class="d-flex gap-2 flex-wrap">
+          <a class="btn btn-accent flex-grow-1" href="{% url 'quiz' klass.slug subject.slug chapter.slug %}">
+            Retry<i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+          </a>
+          <a class="btn btn-quiet flex-grow-1" href="{% url 'quiz_analysis' klass.slug subject.slug chapter.slug %}">
+            View analysis<i class="bi bi-bar-chart" aria-hidden="true"></i>
+          </a>
+        </div>
+        {% else %}
         <a class="btn btn-accent btn-block-q" href="{% url 'quiz' klass.slug subject.slug chapter.slug %}">
           Take quiz<i class="bi bi-arrow-right" aria-hidden="true"></i>
         </a>
+        {% endif %}
       </div>
       {% endif %}
 

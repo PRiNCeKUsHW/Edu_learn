@@ -10,6 +10,7 @@ from django_ratelimit.decorators import ratelimit
 from discussions.forms import CommentForm
 from discussions.models import Comment
 from progress.models import LessonProgress
+from quizzes.models import QuizAttempt
 
 from .models import Chapter, Class, Lesson, Subject
 
@@ -66,12 +67,17 @@ def _get_subject(class_slug, subject_slug):
 @login_required
 def chapter_list(request, class_slug, subject_slug):
     klass, subject = _get_subject(class_slug, subject_slug)
-    chapters = Chapter.objects.filter(subject=subject).prefetch_related('lessons')
+    chapters = Chapter.objects.filter(subject=subject).select_related('quiz').prefetch_related('lessons')
 
     watched_ids = set(
         LessonProgress.objects.filter(
             user=request.user, watched=True
         ).values_list('lesson_id', flat=True)
+    )
+    attempted_quiz_ids = set(
+        QuizAttempt.objects.filter(
+            user=request.user, quiz__chapter__subject=subject
+        ).values_list('quiz_id', flat=True)
     )
 
     return render(request, 'curriculum/chapter_list.html', {
@@ -79,6 +85,7 @@ def chapter_list(request, class_slug, subject_slug):
         'subject': subject,
         'chapters': chapters,
         'watched_ids': watched_ids,
+        'attempted_quiz_ids': attempted_quiz_ids,
     })
 
 
@@ -141,6 +148,9 @@ def lesson_detail(request, class_slug, subject_slug, chapter_slug, lesson_slug):
     # -- resolved purely through the ORM once `quizzes` is installed, no
     # import needed here.
     quiz = getattr(chapter, 'quiz', None)
+    quiz_attempted = quiz is not None and QuizAttempt.objects.filter(
+        user=request.user, quiz=quiz
+    ).exists()
 
     return render(request, 'curriculum/lesson_detail.html', {
         'klass': klass,
@@ -154,6 +164,7 @@ def lesson_detail(request, class_slug, subject_slug, chapter_slug, lesson_slug):
         'prev_lesson': prev_lesson,
         'next_lesson': next_lesson,
         'quiz': quiz,
+        'quiz_attempted': quiz_attempted,
     })
 
 

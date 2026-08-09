@@ -60,6 +60,7 @@ urlpatterns = [
 
     # Users
     path('users/', views.UserListView.as_view(), name='user_list'),
+    path('users/<int:pk>/report/', views.student_report, name='user_report'),
     path('users/<int:pk>/toggle-staff/', views.user_toggle_staff, name='user_toggle_staff'),
     path('users/<int:pk>/toggle-active/', views.user_toggle_active, name='user_toggle_active'),
 

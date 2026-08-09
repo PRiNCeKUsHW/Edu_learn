@@ -566,6 +566,50 @@ class ChoiceDeleteView(AdminDeleteMixin, DeleteView):
 # USERS
 # ─────────────────────────────────────────────
 
+@staff_member_required
+def student_report(request, pk):
+    """Read-only report card for one student: quiz history (full, not just
+    the latest attempt, so staff can see improvement across retakes) and
+    lesson-watch progress per class."""
+    student = get_object_or_404(User, pk=pk)
+
+    classes = Class.objects.filter(is_active=True).select_related('kind').annotate(
+        total_lessons=Count('subjects__chapters__lessons', distinct=True),
+        watched_lessons=Count(
+            'subjects__chapters__lessons__progress',
+            filter=Q(
+                subjects__chapters__lessons__progress__user=student,
+                subjects__chapters__lessons__progress__watched=True,
+            ),
+            distinct=True,
+        ),
+    )
+    class_progress = [
+        {
+            'klass': klass,
+            'total_lessons': klass.total_lessons,
+            'watched_lessons': klass.watched_lessons,
+            'percent': round((klass.watched_lessons / klass.total_lessons) * 100)
+                       if klass.total_lessons else 0,
+        }
+        for klass in classes if klass.total_lessons
+    ]
+
+    attempts = QuizAttempt.objects.filter(user=student).select_related(
+        'quiz__chapter__subject__klass'
+    ).order_by('-attempted_at')
+
+    return render(request, 'admin_panel/student_report.html', {
+        'student': student,
+        'class_progress': class_progress,
+        'attempts': attempts,
+        'quizzes_passed': attempts.filter(passed=True).values('quiz').distinct().count(),
+        'total_attempts': attempts.count(),
+        'comment_count': student.comments.count(),
+        'page': 'users',
+    })
+
+
 class UserListView(AdminListMixin, ListView):
     model = User
     context_object_name = 'users'

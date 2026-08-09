@@ -57,11 +57,9 @@
           </form>
         </td>
         <td>
-          {% if u != request.user %}
-            <span style="font-size:.75rem;color:var(--ink-3);">Use toggles</span>
-          {% else %}
-            <span class="ap-badge ap-badge-yellow">You</span>
-          {% endif %}
+          <a href="{% url 'ap:user_report' u.pk %}" class="btn-ap btn-ap-outline btn-ap-sm">
+            <i class="bi bi-clipboard-data"></i> Report
+          </a>
         </td>
       </tr>
       {% empty %}

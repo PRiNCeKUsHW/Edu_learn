@@ -68,9 +68,20 @@
               <span class="d-block" style="font-weight: 600; font-size: 0.9375rem">Chapter quiz</span>
               <span class="t-meta">Pass mark {{ chapter.quiz.pass_percentage }}%</span>
             </span>
+            {% if chapter.quiz.id in attempted_quiz_ids %}
+            <span class="d-flex gap-2 flex-wrap">
+              <a class="btn btn-soft btn-sm-q" href="{% url 'quiz' klass.slug subject.slug chapter.slug %}">
+                <i class="bi bi-arrow-repeat" aria-hidden="true"></i>Retry
+              </a>
+              <a class="btn btn-quiet btn-sm-q" href="{% url 'quiz_analysis' klass.slug subject.slug chapter.slug %}">
+                <i class="bi bi-bar-chart" aria-hidden="true"></i>View analysis
+              </a>
+            </span>
+            {% else %}
             <a class="btn btn-soft btn-sm-q" href="{% url 'quiz' klass.slug subject.slug chapter.slug %}">
               <i class="bi bi-patch-question" aria-hidden="true"></i>Take quiz
             </a>
+            {% endif %}
           </div>
           {% endif %}
 

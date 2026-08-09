@@ -1,0 +1,109 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Report card — {{ student.username }}{% endblock %}
+{% block topbar_title %}{{ student.get_full_name|default:student.username }}{% endblock %}
+{% block topbar_sub %}@{{ student.username }} · joined {{ student.date_joined|date:"d M Y" }}{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <a href="{% url 'ap:user_list' %}" class="btn-ap btn-ap-outline btn-ap-sm">
+    <i class="bi bi-arrow-left"></i> Back to users
+  </a>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;color:#22c55e;"><i class="bi bi-check-circle"></i></div>
+      <div>
+        <div class="stat-val">{{ quizzes_passed }}</div>
+        <div class="stat-label">Quizzes Passed</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fdf4ff;color:#a855f7;"><i class="bi bi-trophy"></i></div>
+      <div>
+        <div class="stat-val">{{ total_attempts }}</div>
+        <div class="stat-label">Quiz Attempts</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef2f2;color:#ef4444;"><i class="bi bi-chat-dots"></i></div>
+      <div>
+        <div class="stat-val">{{ comment_count }}</div>
+        <div class="stat-label">Comments</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Lesson progress per class -->
+  <div class="col-lg-5">
+    <div class="ap-card h-100">
+      <div class="ap-card-header">
+        <i class="bi bi-play-circle" style="color:var(--accent);"></i>
+        <h2 class="ap-card-title">Lesson Progress</h2>
+      </div>
+      <div class="ap-card-body d-flex flex-column gap-3">
+        {% for row in class_progress %}
+        <div>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="fw-semibold" style="font-size:.875rem;">{{ row.klass.name }}</span>
+            <span style="font-size:.8rem;color:var(--ink-3);">{{ row.watched_lessons }}/{{ row.total_lessons }} · {{ row.percent }}%</span>
+          </div>
+          <div style="height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden;">
+            <div style="height:100%;width:{{ row.percent }}%;background:var(--accent);border-radius:3px;"></div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="ap-empty"><i class="bi bi-play-circle"></i><p>No lesson progress yet.</p></div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Quiz attempt history -->
+  <div class="col-lg-7">
+    <div class="ap-card h-100">
+      <div class="ap-card-header">
+        <i class="bi bi-patch-question" style="color:var(--accent);"></i>
+        <h2 class="ap-card-title">Quiz History</h2>
+      </div>
+      <div class="ap-table-wrap">
+      <table class="ap-table">
+        <thead>
+          <tr><th>Quiz</th><th>Class</th><th>Score</th><th>Result</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          {% for attempt in attempts %}
+          <tr>
+            <td style="font-size:.8rem;">{{ attempt.quiz.title|truncatewords:5 }}</td>
+            <td style="font-size:.8rem;color:var(--ink-3);">{{ attempt.quiz.chapter.subject.klass.name }}</td>
+            <td style="font-family:'DM Mono',monospace;font-size:.8rem;">{{ attempt.score }}/{{ attempt.total }} ({{ attempt.percentage }}%)</td>
+            <td>
+              {% if attempt.passed %}
+                <span class="ap-badge ap-badge-green">Passed</span>
+              {% else %}
+                <span class="ap-badge ap-badge-red">Failed</span>
+              {% endif %}
+            </td>
+            <td style="font-size:.72rem;color:var(--ink-3);">{{ attempt.attempted_at|date:"d M Y, H:i" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5"><div class="ap-empty"><i class="bi bi-patch-question"></i><p>No quiz attempts yet.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

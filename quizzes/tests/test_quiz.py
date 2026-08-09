@@ -8,7 +8,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from curriculum.models import Chapter
-from quizzes.models import Choice, Question, Quiz, QuizAttempt
+from quizzes.models import Choice, Question, Quiz, QuizAnswer, QuizAttempt
 from curriculum.tests.factories import make_chapter, make_class, make_subject
 
 
@@ -112,9 +112,10 @@ class QuizQueryCountTests(TestCase):
         self.assertEqual(response.status_code, 200)
         # Regardless of the 8 questions above: subject, class level, chapter,
         # quiz, the questions+choices prefetch (2 queries), the QuizAttempt
-        # insert, and the session/auth lookups the test client does on every
-        # request — a small constant, not one that grows with question count.
-        self.assertLess(len(ctx.captured_queries), 15)
+        # insert, the QuizAnswer bulk_create, and the session/auth lookups
+        # the test client does on every request — a small constant, not one
+        # that grows with question count.
+        self.assertLess(len(ctx.captured_queries), 20)
 
 
 class QuizDuplicateSlugTests(TestCase):
@@ -170,3 +171,54 @@ class QuizDuplicateSlugTests(TestCase):
         response = self.client.post(url, {f'question_{self.question.id}': self.correct_choice.id})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'You passed')
+
+
+class QuizRetakeHistoryTests(TestCase):
+    """Retaking a quiz must keep full history (every submission its own
+    QuizAttempt row) -- the user explicitly asked for improvement tracking,
+    not a single overwritten "latest score"."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='student', password='pass12345')
+        self.client.force_login(self.user)
+
+        chapter = make_chapter(make_subject(make_class(), 'Maths'), 'Numbers')
+        self.quiz = Quiz.objects.create(chapter=chapter, title='Numbers Quiz', pass_percentage=60)
+        self.url = reverse('quiz', args=['class-6', 'maths', 'numbers'])
+        self.analysis_url = reverse('quiz_analysis', args=['class-6', 'maths', 'numbers'])
+
+        self.q1 = Question.objects.create(quiz=self.quiz, text='2 + 2 = ?', order=1, explanation='Basic addition.')
+        self.right = Choice.objects.create(question=self.q1, text='4', is_correct=True)
+        self.wrong = Choice.objects.create(question=self.q1, text='5', is_correct=False)
+
+    def test_second_submission_creates_a_second_attempt_row(self):
+        self.client.post(self.url, {f'question_{self.q1.id}': self.wrong.id})
+        self.client.post(self.url, {f'question_{self.q1.id}': self.right.id})
+        self.assertEqual(QuizAttempt.objects.filter(user=self.user, quiz=self.quiz).count(), 2)
+
+    def test_each_attempt_gets_its_own_stored_answers(self):
+        self.client.post(self.url, {f'question_{self.q1.id}': self.wrong.id})
+        self.client.post(self.url, {f'question_{self.q1.id}': self.right.id})
+        self.assertEqual(QuizAnswer.objects.filter(attempt__user=self.user).count(), 2)
+        first, second = QuizAttempt.objects.filter(
+            user=self.user, quiz=self.quiz
+        ).order_by('attempted_at')
+        self.assertEqual(first.answers.get().selected_choice_id, self.wrong.id)
+        self.assertEqual(second.answers.get().selected_choice_id, self.right.id)
+
+    def test_analysis_view_404s_with_no_prior_attempt(self):
+        response = self.client.get(self.analysis_url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_analysis_view_shows_most_recent_attempt(self):
+        self.client.post(self.url, {f'question_{self.q1.id}': self.wrong.id})
+        self.client.post(self.url, {f'question_{self.q1.id}': self.right.id})
+        response = self.client.get(self.analysis_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'You passed')
+        self.assertContains(response, 'Basic addition.')
+
+    def test_analysis_view_does_not_create_a_new_attempt(self):
+        self.client.post(self.url, {f'question_{self.q1.id}': self.right.id})
+        self.client.get(self.analysis_url)
+        self.assertEqual(QuizAttempt.objects.filter(user=self.user, quiz=self.quiz).count(), 1)

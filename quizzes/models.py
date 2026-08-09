@@ -74,3 +74,22 @@ class QuizAttempt(models.Model):
     @property
     def percentage(self):
         return round((self.score / self.total) * 100) if self.total > 0 else 0
+
+
+class QuizAnswer(models.Model):
+    """Which choice the student picked for one question of a stored
+    QuizAttempt -- persisted so 'View analysis' can rebuild the answer
+    review for a past attempt without the original POST data."""
+    attempt = models.ForeignKey(
+        QuizAttempt, on_delete=models.CASCADE, related_name='answers'
+    )
+    question = models.ForeignKey(
+        Question, on_delete=models.CASCADE, related_name='+'
+    )
+    selected_choice = models.ForeignKey(
+        Choice, on_delete=models.SET_NULL, null=True, blank=True, related_name='+'
+    )
+    is_correct = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('attempt', 'question')
