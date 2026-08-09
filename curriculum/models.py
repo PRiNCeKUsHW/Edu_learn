@@ -46,7 +46,7 @@ class CourseKind(models.Model):
     "Workshop", "Certification" -- and attaches them to Classes.
     """
     name = models.CharField(max_length=100)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     icon = models.CharField(
         max_length=50,
@@ -87,7 +87,7 @@ class Class(models.Model):
     so the same code runs a school, a coaching institute or a music academy.
     """
     name = models.CharField(max_length=150)
-    slug = models.SlugField(unique=True, help_text='URL segment. Auto-filled from the name.')
+    slug = models.SlugField(max_length=100, unique=True, help_text='URL segment. Auto-filled from the name.')
     kind = models.ForeignKey(
         CourseKind,
         on_delete=models.SET_NULL,
@@ -142,7 +142,7 @@ class Subject(models.Model):
         verbose_name='class',
     )
     name = models.CharField(max_length=100)
-    slug = models.SlugField(help_text='URL segment. Auto-filled from the name.')
+    slug = models.SlugField(max_length=100, help_text='URL segment. Auto-filled from the name.')
     description = models.TextField(blank=True)
     icon_class = models.CharField(
         max_length=50,
@@ -174,7 +174,7 @@ class Chapter(models.Model):
         Subject, on_delete=models.CASCADE, related_name='chapters'
     )
     title = models.CharField(max_length=200)
-    slug = models.SlugField()
+    slug = models.SlugField(max_length=100)
     order = models.PositiveIntegerField(default=1)
     description = models.TextField(blank=True)
 
@@ -195,7 +195,7 @@ class Lesson(models.Model):
         Chapter, on_delete=models.CASCADE, related_name='lessons'
     )
     title = models.CharField(max_length=200)
-    slug = models.SlugField()
+    slug = models.SlugField(max_length=100)
     order = models.PositiveIntegerField(default=1)
     youtube_video_id = models.CharField(
         max_length=20,
