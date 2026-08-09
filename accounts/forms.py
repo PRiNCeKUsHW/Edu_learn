@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
@@ -18,3 +19,22 @@ class GoogleCompleteProfileForm(UserCreationForm):
     class Meta:
         model = User
         fields = ('username',)
+
+
+class ProfileForm(forms.ModelForm):
+    """Self-service profile edit. Includes `username` -- it's what
+    login_view's AuthenticationForm actually authenticates against, so it's
+    the field worth editing here. Deliberately excludes `email` instead: for
+    a Google-linked account it's sourced from the verified ID token claim
+    (see accounts.views.google_callback_view / GoogleAccount.email), and
+    letting someone freely retype it here would just desync it from what
+    Google actually verified.
+    """
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'username')
+        error_messages = {
+            'username': {
+                'unique': "That username is already taken. Please choose a different one.",
+            },
+        }

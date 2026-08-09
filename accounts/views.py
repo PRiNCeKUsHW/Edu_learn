@@ -5,15 +5,18 @@ from datetime import datetime, timedelta
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
+from django.contrib.auth.views import PasswordChangeView
 from django.contrib import messages
 from django.db import IntegrityError, transaction
+from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django_ratelimit.decorators import ratelimit
 
-from .forms import GoogleCompleteProfileForm
+from .forms import GoogleCompleteProfileForm, ProfileForm
 from .google_oauth import (
     GoogleOAuthError, build_authorization_url, exchange_code_for_claims, generate_state,
 )
@@ -370,3 +373,60 @@ def google_link_confirm_view(request):
         return redirect('login')
 
     return render(request, 'accounts/google_link_confirm.html', {'email': pending['email']})
+
+
+# ─────────────────────────────────────────────
+# ACCOUNT SETTINGS
+# ─────────────────────────────────────────────
+
+@login_required
+def account_settings_view(request):
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile has been updated.')
+            return redirect('account_settings')
+    else:
+        form = ProfileForm(instance=request.user)
+    return render(request, 'accounts/account_settings.html', {'form': form})
+
+
+class AccountPasswordChangeView(PasswordChangeView):
+    """Thin wrapper around Django's own PasswordChangeView -- it already
+    validates the old password, enforces AUTH_PASSWORD_VALIDATORS, and calls
+    update_session_auth_hash so the session survives the change. Only the
+    template and success destination are project-specific; the actual
+    password-handling logic is Django's, not reinvented here.
+    """
+    template_name = 'accounts/account_password_change.html'
+    success_url = reverse_lazy('account_settings')
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Your password has been changed.')
+        return response
+
+
+@login_required
+def account_delete_view(request):
+    """Deletes the requesting user's own account. Requires re-entering the
+    current password -- protects against deleting an account from an
+    unattended, already-logged-in session (a shared/public computer, for
+    instance), not just a stray misclick.
+
+    GoogleAccount, Comment, QuizAttempt and LessonProgress all have
+    on_delete=models.CASCADE on their `user` FK, so User.delete() already
+    cleans up every related row across accounts/discussions/quizzes/progress
+    -- no extra signal handling needed here.
+    """
+    if request.method == 'POST':
+        password = request.POST.get('password', '')
+        if request.user.check_password(password):
+            user = request.user
+            logout(request)
+            user.delete()
+            messages.success(request, 'Your account has been deleted.')
+            return redirect('landing')
+        messages.error(request, 'Incorrect password. Your account was not deleted.')
+    return render(request, 'accounts/account_delete.html')

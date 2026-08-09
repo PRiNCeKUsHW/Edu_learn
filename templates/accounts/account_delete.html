@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Delete account — EduLearn{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="max-width: 420px; padding-top: var(--space-8); padding-bottom: var(--space-8)">
+
+  <header style="text-align: center; margin-bottom: var(--space-6)">
+    <h1 class="t-h1" style="font-size: 1.75rem; margin-bottom: 0.35rem; color: var(--danger)">Delete account</h1>
+    <p class="t-meta" style="margin-bottom: 0">This cannot be undone.</p>
+  </header>
+
+  <div class="panel-lg reveal reveal-1" style="border-color: var(--danger)">
+    <div class="alert alert-danger" style="margin-bottom: var(--space-4)" role="alert">
+      <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+      <span>
+        <strong>This will permanently delete your account.</strong>
+        Your comments, quiz attempts and watch history all go with it — there's no getting it back.
+      </span>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="field">
+        <label class="field-label" for="id_password">Enter your password to confirm</label>
+        <input class="input" type="password" name="password" id="id_password" autocomplete="current-password" autofocus required />
+      </div>
+
+      <button class="btn btn-lg-q btn-block-q" style="margin-top: var(--space-4); border: 1px solid var(--danger); color: var(--danger); background: var(--danger-soft)" type="submit">
+        <i class="bi bi-trash3" aria-hidden="true"></i>Yes, permanently delete my account
+      </button>
+    </form>
+  </div>
+
+  <p class="t-meta" style="text-align: center; margin-top: var(--space-5)">
+    <a href="{% url 'account_settings' %}" style="font-weight: 600">Cancel, take me back</a>
+  </p>
+
+</div>
+{% endblock %}

@@ -19,4 +19,13 @@ urlpatterns = [
         name='google_complete_profile',
     ),
     path('accounts/google/link/', views.google_link_confirm_view, name='google_link_confirm'),
+
+    # Self-service account management
+    path('account/', views.account_settings_view, name='account_settings'),
+    path(
+        'account/password/',
+        views.AccountPasswordChangeView.as_view(),
+        name='account_password_change',
+    ),
+    path('account/delete/', views.account_delete_view, name='account_delete'),
 ]
