@@ -1,9 +1,8 @@
 from django import forms
 from django.utils.text import slugify
 
-from core.models import (
-    CourseKind, Class, Subject, Chapter, Lesson, Resource, Quiz, Question, Choice,
-)
+from curriculum.models import CourseKind, Class, Subject, Chapter, Lesson, Resource
+from quizzes.models import Quiz, Question, Choice
 
 
 class StyledFormMixin:

@@ -15,9 +15,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from core.models import (
-    Chapter, Choice, Class, CourseKind, Lesson, Question, Quiz, Resource, Subject,
-)
+from curriculum.models import Chapter, Class, CourseKind, Lesson, Resource, Subject
+from quizzes.models import Choice, Question, Quiz
 
 TEST_MEDIA_ROOT = tempfile.mkdtemp(prefix='edulearn_test_media_')
 
@@ -53,6 +52,11 @@ class StaffGateTests(TestCase):
         for name in self.LIST_URL_NAMES:
             with self.subTest(name=name):
                 self.assertNotEqual(self.client.get(reverse(name)).status_code, 200)
+
+    def test_admin_panel_is_unreachable_without_staff(self):
+        self.client.force_login(self.student)
+        response = self.client.get(reverse('ap:dashboard'))
+        self.assertNotEqual(response.status_code, 200)
 
 
 class SubjectCRUDTests(TestCase):

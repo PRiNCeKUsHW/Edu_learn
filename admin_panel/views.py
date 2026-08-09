@@ -10,10 +10,9 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from core.models import (
-    Chapter, Choice, Class, Comment, CourseKind, Lesson,
-    Question, Quiz, QuizAttempt, Resource, Subject,
-)
+from curriculum.models import Chapter, Class, CourseKind, Lesson, Resource, Subject
+from discussions.models import Comment
+from quizzes.models import Choice, Question, Quiz, QuizAttempt
 
 from .forms import (
     ChapterForm, ChoiceForm, ClassForm, CourseKindForm, LessonForm,

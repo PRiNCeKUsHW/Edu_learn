@@ -37,6 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core',
+    'accounts',
+    'curriculum',
+    'progress',
+    'quizzes',
+    'discussions',
     'admin_panel',
 ]
 
@@ -140,8 +145,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ─── Cache ─────────────────────────────────────────────────────────────────────
-# Backs django-ratelimit's hit counters (see core/views.py: login_view,
-# google_complete_profile_view, lesson_detail). LocMemCache is fine for one process, but it's
+# Backs django-ratelimit's hit counters (see accounts/views.py: login_view,
+# google_complete_profile_view; curriculum/views.py: lesson_detail). LocMemCache is fine for one process, but it's
 # per-process memory — run more than one gunicorn/uWSGI worker and each worker
 # enforces its own limit independently instead of a shared one, so the real
 # limit becomes (configured rate) x (worker count). Point this at Redis or
@@ -154,10 +159,10 @@ CACHES = {
 
 # django-ratelimit's key='ip' would otherwise read REMOTE_ADDR, which behind
 # any reverse proxy (Railway included) is the proxy's own IP — collapsing
-# every visitor into one shared bucket. See core/ratelimit.py's docstring
+# every visitor into one shared bucket. See accounts/ratelimit.py's docstring
 # for the full reasoning and the (genuinely conflicting) platform guidance
 # behind this specific choice of header.
-RATELIMIT_IP_META_KEY = 'core.ratelimit.get_client_ip'
+RATELIMIT_IP_META_KEY = 'accounts.ratelimit.get_client_ip'
 
 # Sized for this app's actual audience, not a generic default: this is a
 # school platform, and a classroom on shared WiFi is one real public IP
@@ -174,7 +179,7 @@ LOGIN_RATE_LIMIT = config('LOGIN_RATE_LIMIT', default='20/m')
 REGISTRATION_RATE_LIMIT = config('REGISTRATION_RATE_LIMIT', default='30/h')
 
 # ─── Google OAuth ──────────────────────────────────────────────────────────────
-# See core/google_oauth.py for the flow itself and README.md for the exact
+# See accounts/google_oauth.py for the flow itself and README.md for the exact
 # Google Cloud Console setup steps. All three blank by default so a fresh
 # checkout without Google credentials configured just doesn't show the
 # "Continue with Google" button — the rest of the app is unaffected either
@@ -197,7 +202,7 @@ GOOGLE_OAUTH_CONFIGURED = bool(
 )
 
 # ─── Upload limits ─────────────────────────────────────────────────────────────
-# Hard ceilings independent of the per-field validators in core.models, so an
+# Hard ceilings independent of the per-field validators in curriculum.models, so an
 # oversized request is rejected before it is buffered to disk.
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024      # 5 MB kept in memory
 DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024     # 30 MB total request body
@@ -210,7 +215,7 @@ X_FRAME_OPTIONS = 'DENY'
 SESSION_COOKIE_HTTPONLY = True
 # Django's secure default. Previously disabled with a comment claiming the
 # lesson page's AJAX call needed to read the cookie via JavaScript — it
-# doesn't: templates/core/lesson_detail.html gets its token from the
+# doesn't: templates/curriculum/lesson_detail.html gets its token from the
 # server-rendered {{ csrf_token }} template variable, never from
 # document.cookie (confirmed: no template or static JS in this project reads
 # `document.cookie` or a `csrftoken` cookie anywhere). Leaving it False bought
@@ -240,10 +245,11 @@ if not DEBUG:
 
 # ─── Logging ───────────────────────────────────────────────────────────────────
 # Console always; rotating log files only outside DEBUG, so a local dev
-# checkout never accumulates log files nobody asked for. `core` and
-# `admin_panel` are this project's own loggers (see the logger.warning calls
-# in core/views.py and admin_panel/views.py) — everything else here is
-# Django's own logging plumbed to somewhere durable instead of just stdout.
+# checkout never accumulates log files nobody asked for. `accounts`,
+# `curriculum`, `progress` and `admin_panel` are this project's own loggers
+# (see the logger.warning calls in their respective views.py) — everything
+# else here is Django's own logging plumbed to somewhere durable instead of
+# just stdout.
 LOG_LEVEL = config('DJANGO_LOG_LEVEL', default='INFO')
 
 LOGGING = {
@@ -274,6 +280,9 @@ LOGGING = {
         # application code needed for that part.
         'django.security': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
         'core': {'handlers': ['console'], 'level': LOG_LEVEL, 'propagate': False},
+        'accounts': {'handlers': ['console'], 'level': LOG_LEVEL, 'propagate': False},
+        'curriculum': {'handlers': ['console'], 'level': LOG_LEVEL, 'propagate': False},
+        'progress': {'handlers': ['console'], 'level': LOG_LEVEL, 'propagate': False},
         'admin_panel': {'handlers': ['console'], 'level': LOG_LEVEL, 'propagate': False},
     },
 }
@@ -325,7 +334,7 @@ if not DEBUG and ensure_log_dir(BASE_DIR / 'logs'):
         },
     })
     LOGGING['root']['handlers'] = ['console', 'file']
-    for logger_name in ('django', 'core', 'admin_panel'):
+    for logger_name in ('django', 'core', 'accounts', 'curriculum', 'progress', 'admin_panel'):
         LOGGING['loggers'][logger_name]['handlers'] = ['console', 'file']
     LOGGING['loggers']['django.request']['handlers'] = ['console', 'error_file']
     LOGGING['loggers']['django.security']['handlers'] = ['console', 'security_file']

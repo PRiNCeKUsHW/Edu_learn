@@ -5,7 +5,10 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('core.urls')),
+    path('', include('accounts.urls')),
+    path('', include('curriculum.urls')),
+    path('', include('progress.urls')),
+    path('', include('quizzes.urls')),
     path('panel/', include('admin_panel.urls', namespace='ap')),
 ]
 
