@@ -112,11 +112,20 @@ class LogoutTests(TestCase):
     def test_logout_clears_the_session(self):
         user = User.objects.create_user(username='student', password='pass12345')
         self.client.force_login(user)
-        response = self.client.get(reverse('logout'))
+        response = self.client.post(reverse('logout'))
         self.assertRedirects(response, reverse('landing'))
         dash = self.client.get(reverse('dashboard'))
         self.assertEqual(dash.status_code, 302)
         self.assertIn(reverse('login'), dash.url)
+
+    def test_logout_rejects_get(self):
+        """A GET logout could be fired by a prefetch or an <img> tag on any
+        page, signing the student out without them clicking anything."""
+        user = User.objects.create_user(username='student', password='pass12345')
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(reverse('logout')).status_code, 405)
+        # still signed in
+        self.assertEqual(self.client.get(reverse('dashboard')).status_code, 200)
 
 
 class LoginRequiredPermissionTests(TestCase):

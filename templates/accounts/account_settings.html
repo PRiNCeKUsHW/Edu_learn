@@ -62,8 +62,22 @@
     <a class="btn btn-quiet" href="{% url 'account_password_change' %}">Change password</a>
   </div>
 
+  <!-- ── Session ── -->
+  <div class="panel-lg reveal reveal-3 d-flex align-items-center justify-content-between gap-3 flex-wrap" style="margin-bottom: var(--space-5)">
+    <div>
+      <div class="t-eyebrow" style="margin-bottom: 0.3rem">Session</div>
+      <p class="t-meta" style="margin-bottom: 0">Sign out of EduLearn on this device.</p>
+    </div>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button class="btn btn-quiet" type="submit">
+        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>Log out
+      </button>
+    </form>
+  </div>
+
   <!-- ── Danger zone ── -->
-  <div class="panel-lg reveal reveal-3" style="border-color: var(--danger)">
+  <div class="panel-lg reveal reveal-4" style="border-color: var(--danger)">
     <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
       <div>
         <div class="t-eyebrow" style="margin-bottom: 0.3rem; color: var(--danger)">Danger zone</div>

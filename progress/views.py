@@ -1,45 +1,23 @@
-from datetime import timedelta
-
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
-from django.db.models.functions import TruncDate
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from curriculum.models import Class, Lesson
+from curriculum.models import Lesson
 from quizzes.models import QuizAttempt
 
 from .models import LessonProgress
-
-
-def _watched_day_set(user):
-    """Local dates on which the user marked at least one lesson watched."""
-    return set(
-        LessonProgress.objects
-        .filter(user=user, watched=True, watched_at__isnull=False)
-        .annotate(day=TruncDate('watched_at'))
-        .values_list('day', flat=True)
-    )
-
-
-def _study_streak(day_set, today):
-    """Consecutive days up to today with activity. Yesterday still counts as
-    alive so the streak doesn't reset before the day is over."""
-    if today in day_set:
-        cursor = today
-    elif (today - timedelta(days=1)) in day_set:
-        cursor = today - timedelta(days=1)
-    else:
-        return 0
-
-    streak = 0
-    while cursor in day_set:
-        streak += 1
-        cursor -= timedelta(days=1)
-    return streak
+from .selectors import (
+    annotate_class_progress,
+    class_progress_rows,
+    quiz_stats,
+    study_minutes,
+    study_streak,
+    watched_day_set,
+    week_activity,
+)
 
 
 def _resume_target(user):
@@ -75,20 +53,7 @@ def _resume_target(user):
 
 @login_required
 def dashboard(request):
-    # One aggregate query for every class instead of 2 per class. Only active
-    # classes are offered; is_active is the admin's hide-without-deleting switch.
-    classes = Class.objects.filter(is_active=True).select_related('kind').annotate(
-        total_lessons=Count('subjects__chapters__lessons', distinct=True),
-        watched_lessons=Count(
-            'subjects__chapters__lessons__progress',
-            filter=Q(
-                subjects__chapters__lessons__progress__user=request.user,
-                subjects__chapters__lessons__progress__watched=True,
-            ),
-            distinct=True,
-        ),
-        subject_count=Count('subjects', filter=Q(subjects__is_active=True), distinct=True),
-    )
+    classes = annotate_class_progress(request.user)
 
     class_data = []
     # Every CourseKind the admin creates becomes its own dashboard section.
@@ -129,7 +94,7 @@ def dashboard(request):
         class_groups.append({'kind': None, 'classes': ungrouped})
 
     today = timezone.localdate()
-    day_set = _watched_day_set(request.user)
+    day_set = watched_day_set(request.user)
 
     return render(request, 'progress/dashboard.html', {
         'class_data': class_data,
@@ -137,13 +102,8 @@ def dashboard(request):
         'overall_percent': round((watched_all / total_all) * 100) if total_all else 0,
         'watched_all': watched_all,
         'total_all': total_all,
-        'streak': _study_streak(day_set, today),
-        # Oldest-first so the dot strip reads left to right, ending today.
-        'week_activity': [
-            {'day': today - timedelta(days=offset),
-             'active': (today - timedelta(days=offset)) in day_set}
-            for offset in range(6, -1, -1)
-        ],
+        'streak': study_streak(day_set, today),
+        'week_activity': week_activity(day_set, today),
         'quizzes_passed': QuizAttempt.objects.filter(
             user=request.user, passed=True
         ).values('quiz').distinct().count(),
@@ -162,3 +122,38 @@ def mark_watched(request, lesson_id):
     progress.watched_at = timezone.now() if progress.watched else None
     progress.save()
     return JsonResponse({'watched': progress.watched})
+
+
+@login_required
+def my_progress(request):
+    """The student's own report card: how far through each class they are,
+    and every quiz mark they've earned.
+
+    The home dashboard answers "what should I do next"; this answers "how am
+    I doing". Deliberately shows the full attempt history rather than the
+    latest attempt per quiz, so a student can see themselves improving across
+    retakes -- the same reasoning behind the staff-side report.
+    """
+    today = timezone.localdate()
+    day_set = watched_day_set(request.user)
+    class_progress = class_progress_rows(request.user)
+
+    watched_all = sum(row['watched_lessons'] for row in class_progress)
+    total_all = sum(row['total_lessons'] for row in class_progress)
+
+    return render(request, 'progress/my_progress.html', {
+        'class_progress': class_progress,
+        # select_related spans quiz -> chapter -> subject -> class because the
+        # history list names the class for every row; without it the page runs
+        # four extra queries per attempt.
+        'attempts': QuizAttempt.objects.filter(user=request.user).select_related(
+            'quiz__chapter__subject__klass'
+        ),
+        'stats': quiz_stats(request.user),
+        'study_minutes': study_minutes(request.user),
+        'watched_all': watched_all,
+        'total_all': total_all,
+        'overall_percent': round((watched_all / total_all) * 100) if total_all else 0,
+        'streak': study_streak(day_set, today),
+        'week_activity': week_activity(day_set, today),
+    })

@@ -12,6 +12,7 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from curriculum.models import Chapter, Class, CourseKind, Lesson, Resource, Subject
 from discussions.models import Comment
+from progress.selectors import class_progress_rows
 from quizzes.models import Choice, Question, Quiz, QuizAttempt
 
 from .forms import (
@@ -573,27 +574,7 @@ def student_report(request, pk):
     lesson-watch progress per class."""
     student = get_object_or_404(User, pk=pk)
 
-    classes = Class.objects.filter(is_active=True).select_related('kind').annotate(
-        total_lessons=Count('subjects__chapters__lessons', distinct=True),
-        watched_lessons=Count(
-            'subjects__chapters__lessons__progress',
-            filter=Q(
-                subjects__chapters__lessons__progress__user=student,
-                subjects__chapters__lessons__progress__watched=True,
-            ),
-            distinct=True,
-        ),
-    )
-    class_progress = [
-        {
-            'klass': klass,
-            'total_lessons': klass.total_lessons,
-            'watched_lessons': klass.watched_lessons,
-            'percent': round((klass.watched_lessons / klass.total_lessons) * 100)
-                       if klass.total_lessons else 0,
-        }
-        for klass in classes if klass.total_lessons
-    ]
+    class_progress = class_progress_rows(student)
 
     attempts = QuizAttempt.objects.filter(user=student).select_related(
         'quiz__chapter__subject__klass'
