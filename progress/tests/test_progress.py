@@ -1,5 +1,6 @@
 """Progress tracking: the mark-watched AJAX toggle and the dashboard's
-aggregate calculations (overall %, per-subject %, streak, resume target).
+aggregate calculations (overall %, per-subject %, streak, resume target),
+plus the student's own Progress report card (marks, completion, study time).
 """
 from datetime import timedelta
 
@@ -8,9 +9,15 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+
 from curriculum.models import Lesson
 from progress.models import LessonProgress
-from curriculum.tests.factories import make_chapter, make_class, make_content, make_subject
+from quizzes.models import QuizAttempt
+from curriculum.tests.factories import (
+    make_chapter, make_class, make_content, make_lesson, make_quiz, make_subject,
+)
 
 
 class MarkWatchedTests(TestCase):
@@ -114,3 +121,133 @@ class DashboardCalculationTests(TestCase):
         LessonProgress.objects.all().delete()
         response = self.client.get(reverse('dashboard'))
         self.assertIsNone(response.context['resume_lesson'])
+
+
+class MyProgressTests(TestCase):
+    """The student-facing report card. The fixture is built so every number
+    the page shows has one hand-computable answer, and so the two edge cases
+    that can crash an aggregate — a class with no lessons and an attempt with
+    total=0 — are present from the start rather than bolted on later."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='student', password='pass12345')
+        self.client.force_login(self.user)
+        self.url = reverse('my_progress')
+
+        klass = make_class('Class 6')
+        subject = make_subject(klass, 'Maths')
+        chapter = make_chapter(subject, 'Numbers')
+        # 4 lessons, 3 watched -> 75%. Durations sum to 30 across the watched
+        # three; the unwatched one carries time that must NOT be counted.
+        self.lessons = [
+            make_lesson(chapter, title=f'Lesson {i}', slug=f'lesson-{i}', order=i,
+                        duration_minutes=10)
+            for i in range(1, 5)
+        ]
+        for lesson in self.lessons[:3]:
+            LessonProgress.objects.create(
+                user=self.user, lesson=lesson, watched=True, watched_at=timezone.now(),
+            )
+        # An opened-but-unwatched row: created lazily by the lesson page, and
+        # must not count towards completion.
+        LessonProgress.objects.create(user=self.user, lesson=self.lessons[3], watched=False)
+
+        # A class holding a chapter but no lessons — must be dropped, not
+        # rendered at 0%, and must not divide by zero.
+        make_chapter(make_subject(make_class('Class 7'), 'Science'), 'Intro')
+
+        # Marks: 5/10 (50%, failed) and 9/10 (90%, passed) on one quiz,
+        # 2/4 (50%, failed) on another. Average of 50, 90, 50 = 63.33 -> 63.
+        self.quiz = make_quiz(chapter, title='Numbers Quiz', questions=1)
+        other = make_quiz(make_chapter(subject, 'Algebra', slug='algebra'),
+                          title='Algebra Quiz', questions=1)
+        QuizAttempt.objects.create(user=self.user, quiz=self.quiz, score=5, total=10, passed=False)
+        QuizAttempt.objects.create(user=self.user, quiz=self.quiz, score=9, total=10, passed=True)
+        QuizAttempt.objects.create(user=self.user, quiz=other, score=2, total=4, passed=False)
+
+    def test_lesson_completion_counts_only_watched_rows(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['watched_all'], 3)
+        self.assertEqual(response.context['total_all'], 4)
+        self.assertEqual(response.context['overall_percent'], 75)
+
+    def test_empty_class_is_dropped_from_the_breakdown(self):
+        rows = self.client.get(self.url).context['class_progress']
+        by_slug = {row['klass'].slug: row for row in rows}
+        self.assertEqual(by_slug['class-6']['percent'], 75)
+        self.assertNotIn('class-7', by_slug)  # no lessons, not a 0% row
+
+    def test_quiz_counts_are_distinct_quizzes_but_attempts_are_rows(self):
+        stats = self.client.get(self.url).context['stats']
+        self.assertEqual(stats['attempts_count'], 3)   # retakes each count
+        self.assertEqual(stats['quizzes_given'], 2)    # two distinct quizzes
+        self.assertEqual(stats['quizzes_passed'], 1)   # one of them passed
+
+    def test_average_and_best_score_percentages(self):
+        stats = self.client.get(self.url).context['stats']
+        self.assertEqual(stats['avg_percent'], 63)  # (50 + 90 + 50) / 3
+        self.assertEqual(stats['best_percent'], 90)
+
+    def test_study_minutes_sums_only_watched_lessons(self):
+        self.assertEqual(self.client.get(self.url).context['study_minutes'], 30)
+
+    def test_history_lists_every_attempt_newest_first(self):
+        attempts = list(self.client.get(self.url).context['attempts'])
+        self.assertEqual(len(attempts), 3)
+        self.assertEqual(attempts[0].attempted_at, max(a.attempted_at for a in attempts))
+
+    def test_a_zero_question_attempt_is_excluded_from_the_average(self):
+        """The row still counts as an attempt but can't contribute a
+        percentage. Note this asserts values only: the tests run on SQLite,
+        which returns NULL for x/0, so it would pass even without the
+        exclude() in quiz_stats. The exclude is there for PostgreSQL, which
+        raises division_by_zero instead."""
+        QuizAttempt.objects.create(user=self.user, quiz=self.quiz, score=0, total=0, passed=False)
+        stats = self.client.get(self.url).context['stats']
+        self.assertEqual(stats['attempts_count'], 4)
+        self.assertEqual(stats['avg_percent'], 63)  # unchanged
+        self.assertEqual(stats['best_percent'], 90)
+
+
+class MyProgressEmptyStateTests(TestCase):
+    """A brand-new student has no progress rows and no attempts at all: every
+    aggregate returns None from the database and must render as 0, not crash."""
+
+    def test_a_student_with_no_activity_sees_zeroes(self):
+        user = User.objects.create_user(username='fresh', password='pass12345')
+        self.client.force_login(user)
+        make_content()
+
+        response = self.client.get(reverse('my_progress'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['overall_percent'], 0)
+        self.assertEqual(response.context['study_minutes'], 0)
+        self.assertEqual(response.context['streak'], 0)
+        self.assertEqual(list(response.context['attempts']), [])
+        stats = response.context['stats']
+        self.assertEqual(stats['avg_percent'], 0)
+        self.assertEqual(stats['best_percent'], 0)
+        self.assertEqual(stats['quizzes_given'], 0)
+
+
+class MyProgressQueryCountTests(TestCase):
+    """Locks the select_related on the attempt history. Each row names its
+    quiz, chapter, subject and class, so without it the page issues four
+    extra queries per attempt and scales with the student's history."""
+
+    def test_query_count_does_not_grow_with_attempt_count(self):
+        user = User.objects.create_user(username='student', password='pass12345')
+        self.client.force_login(user)
+        chapter = make_chapter(make_subject(make_class(), 'Maths'), 'Numbers')
+        quiz = make_quiz(chapter, title='Numbers Quiz', questions=1)
+        for _ in range(12):
+            QuizAttempt.objects.create(user=user, quiz=quiz, score=5, total=10, passed=False)
+
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(reverse('my_progress'))
+        self.assertEqual(response.status_code, 200)
+        # Constant regardless of the 12 attempts above: the class annotation,
+        # the attempt list, the four quiz-stat aggregates, study minutes, the
+        # streak day set, plus the session/auth lookups the test client makes.
+        self.assertLess(len(ctx.captured_queries), 15)

@@ -14,6 +14,7 @@ from django.db import IntegrityError, transaction
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
 from .forms import GoogleCompleteProfileForm, ProfileForm
@@ -87,7 +88,10 @@ def login_view(request):
     })
 
 
+@require_POST
 def logout_view(request):
+    """POST-only: a GET logout can be fired by any prefetch, image tag or
+    third-party link, which would sign the student out without them acting."""
     logout(request)
     messages.info(request, 'You have been logged out successfully.')
     return redirect('landing')

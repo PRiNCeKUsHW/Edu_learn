@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}My progress — EduLearn{% endblock %}
+{% block meta_description %}Your lesson completion, quiz marks and study streak on EduLearn.{% endblock %}
+
+{% block content %}
+<div class="container-page" style="padding-top: var(--space-7); padding-bottom: var(--space-7)">
+
+  <header class="reveal reveal-1" style="margin-bottom: var(--space-6)">
+    <h1 class="t-h1">Your progress</h1>
+    <p class="t-lead" style="margin-bottom: 0">
+      {% if total_all %}
+        You've completed {{ watched_all }} of {{ total_all }} lesson{{ total_all|pluralize }} and taken {{ stats.attempts_count }} quiz{{ stats.attempts_count|pluralize:"zes" }}.
+      {% else %}
+        Your marks and lesson completion will appear here as you study.
+      {% endif %}
+    </p>
+  </header>
+
+  <!-- ── Headline marks ── -->
+  <div class="stat-row reveal reveal-2" style="margin-bottom: var(--space-6)">
+    <div class="stat">
+      <div class="stat-value">{{ watched_all }}<span style="font-size: 1rem; color: var(--text-muted)">/{{ total_all }}</span></div>
+      <div class="stat-label">Lessons completed</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ stats.quizzes_given }}</div>
+      <div class="stat-label">Quiz{{ stats.quizzes_given|pluralize:"zes" }} given</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ stats.avg_percent }}<span style="font-size: 1rem; color: var(--text-muted)">%</span></div>
+      <div class="stat-label">Average score</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ stats.best_percent }}<span style="font-size: 1rem; color: var(--text-muted)">%</span></div>
+      <div class="stat-label">Best score</div>
+    </div>
+  </div>
+
+  <!-- ── Streak + study time ── -->
+  <div class="panel reveal reveal-2 d-flex align-items-center justify-content-between gap-3 flex-wrap" style="margin-bottom: var(--space-6)">
+    <div>
+      <div class="t-eyebrow" style="margin-bottom: 0.3rem">Last 7 days</div>
+      <div class="t-meta">
+        {% if streak > 1 %}{{ streak }} days in a row — keep it going.{% elif streak == 1 %}You studied today. Come back tomorrow to start a streak.{% else %}No activity yet this week.{% endif %}
+        {% if study_minutes %}· {{ study_minutes }} minute{{ study_minutes|pluralize }} of lessons watched.{% endif %}
+      </div>
+    </div>
+    <div class="streak-days" role="img" aria-label="Study activity for the last 7 days">
+      {% for day in week_activity %}
+      <span class="streak-dot {% if day.active %}is-active{% endif %}" title="{{ day.day|date:'D j M' }}{% if day.active %} — studied{% endif %}"></span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── Per-class completion ── -->
+  <section class="reveal reveal-3" style="margin-bottom: var(--space-7)">
+    <h2 class="t-eyebrow" style="margin-bottom: var(--space-4)">Lesson progress by class</h2>
+
+    {% if class_progress %}
+    <div class="panel d-flex flex-column gap-4">
+      {% for row in class_progress %}
+      <div>
+        <div class="d-flex align-items-center justify-content-between gap-3" style="margin-bottom: 0.4rem">
+          <span style="font-weight: 600; font-size: 0.9375rem">{{ row.klass.name }}</span>
+          <span class="t-meta">{{ row.watched_lessons }}/{{ row.total_lessons }} · {{ row.percent }}%</span>
+        </div>
+        <div class="meter">
+          <div class="meter-fill {% if row.percent == 100 %}is-success{% endif %}" data-pct="{{ row.percent }}"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+      <i class="bi bi-play-circle empty-icon" aria-hidden="true"></i>
+      <div style="color: var(--text); font-weight: 600">No lessons yet</div>
+      <div class="t-meta" style="margin-top: 0.25rem">Once classes have lessons, your completion shows up here.</div>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- ── Quiz marks ── -->
+  <section class="reveal reveal-4">
+    <h2 class="t-eyebrow" style="margin-bottom: var(--space-4)">Quiz marks</h2>
+
+    <div class="d-flex flex-column gap-3">
+      {% for attempt in attempts %}
+      <div class="panel d-flex align-items-center justify-content-between gap-3 flex-wrap">
+        <div style="min-width: 0">
+          <div class="truncate-1" style="font-weight: 600; font-size: 0.9375rem">{{ attempt.quiz.title }}</div>
+          <div class="t-meta">
+            {{ attempt.quiz.chapter.subject.klass.name }} · {{ attempt.quiz.chapter.subject.name }} · {{ attempt.attempted_at|date:"d M Y" }}
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <span style="font-weight: 600; font-size: 0.9375rem">
+            {{ attempt.score }}/{{ attempt.total }}
+            <span class="t-meta" style="font-weight: 400">({{ attempt.percentage }}%)</span>
+          </span>
+          {% if attempt.passed %}
+          <span class="chip chip-success"><i class="bi bi-check-circle" aria-hidden="true"></i>Passed</span>
+          {% else %}
+          <span class="chip chip-danger"><i class="bi bi-x-circle" aria-hidden="true"></i>Failed</span>
+          {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty">
+        <i class="bi bi-patch-question empty-icon" aria-hidden="true"></i>
+        <div style="color: var(--text); font-weight: 600">No quizzes taken yet</div>
+        <div class="t-meta" style="margin-top: 0.25rem">Finish a chapter and take its quiz — your marks will be listed here.</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+</div>
+{% endblock %}
