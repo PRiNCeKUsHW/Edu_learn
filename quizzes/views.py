@@ -104,14 +104,38 @@ def quiz_view(request, class_slug, subject_slug, chapter_slug):
 
 @login_required
 def quiz_analysis_view(request, class_slug, subject_slug, chapter_slug):
-    """Reopens the result/answer-review screen for the student's most
-    recent attempt at this quiz, without requiring a fresh submission."""
+    """Reopens the result/answer-review screen for one of the student's own
+    attempts at this quiz, without requiring a fresh submission.
+
+    Defaults to the most recent attempt; `?attempt=<id>` picks a specific one.
+    """
     klass, subject = _get_subject(class_slug, subject_slug)
     chapter = get_object_or_404(Chapter, subject=subject, slug=chapter_slug)
     quiz = get_object_or_404(Quiz, chapter=chapter)
 
-    # QuizAttempt.Meta.ordering is already ['-attempted_at'].
-    attempt = QuizAttempt.objects.filter(user=request.user, quiz=quiz).first()
+    # Scoping to request.user here is the ownership check: another student's
+    # attempt id simply isn't in this queryset, so it 404s instead of leaking
+    # their answers.
+    attempts = QuizAttempt.objects.filter(user=request.user, quiz=quiz)
+
+    # ?attempt=<id> opens one specific attempt -- the Progress page links every
+    # row, including older retakes, and showing the newest answers for a row
+    # the student picked by its score would be actively misleading. Without the
+    # parameter this stays "most recent", which is what the chapter and lesson
+    # "View analysis" buttons rely on. QuizAttempt.Meta.ordering is already
+    # ['-attempted_at'].
+    requested = request.GET.get('attempt')
+    if requested:
+        # A hand-edited id is a bad URL, not a server error. The digit and
+        # width check happens before the query because an oversized integer
+        # reaches PostgreSQL as something it refuses to compare against an
+        # int column, which would 500 rather than 404.
+        if not requested.isdigit() or len(requested) > 18:
+            raise Http404("Invalid quiz attempt.")
+        attempt = attempts.filter(pk=int(requested)).first()
+    else:
+        attempt = attempts.first()
+
     if attempt is None:
         raise Http404("No quiz attempt found for this quiz.")
 

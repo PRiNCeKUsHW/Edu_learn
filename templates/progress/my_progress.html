@@ -85,14 +85,18 @@
 
     <div class="d-flex flex-column gap-3">
       {% for attempt in attempts %}
-      <div class="panel d-flex align-items-center justify-content-between gap-3 flex-wrap">
-        <div style="min-width: 0">
-          <div class="truncate-1" style="font-weight: 600; font-size: 0.9375rem">{{ attempt.quiz.title }}</div>
-          <div class="t-meta">
+      {# ?attempt= pins the row to its own analysis: the list includes older
+         retakes, and without it every row would open the newest attempt. #}
+      <a class="card-link d-flex align-items-center justify-content-between gap-3 flex-wrap"
+         style="padding: var(--space-5)"
+         href="{% url 'quiz_analysis' attempt.quiz.chapter.subject.klass.slug attempt.quiz.chapter.subject.slug attempt.quiz.chapter.slug %}?attempt={{ attempt.id }}">
+        <span style="min-width: 0">
+          <span class="d-block truncate-1" style="font-weight: 600; font-size: 0.9375rem">{{ attempt.quiz.title }}</span>
+          <span class="t-meta d-block">
             {{ attempt.quiz.chapter.subject.klass.name }} · {{ attempt.quiz.chapter.subject.name }} · {{ attempt.attempted_at|date:"d M Y" }}
-          </div>
-        </div>
-        <div class="d-flex align-items-center gap-3">
+          </span>
+        </span>
+        <span class="d-flex align-items-center gap-3">
           <span style="font-weight: 600; font-size: 0.9375rem">
             {{ attempt.score }}/{{ attempt.total }}
             <span class="t-meta" style="font-weight: 400">({{ attempt.percentage }}%)</span>
@@ -102,8 +106,9 @@
           {% else %}
           <span class="chip chip-danger"><i class="bi bi-x-circle" aria-hidden="true"></i>Failed</span>
           {% endif %}
-        </div>
-      </div>
+          <i class="bi bi-chevron-right text-muted-ink d-none d-sm-block" aria-hidden="true"></i>
+        </span>
+      </a>
       {% empty %}
       <div class="empty">
         <i class="bi bi-patch-question empty-icon" aria-hidden="true"></i>

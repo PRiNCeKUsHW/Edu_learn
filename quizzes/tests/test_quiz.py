@@ -222,3 +222,67 @@ class QuizRetakeHistoryTests(TestCase):
         self.client.post(self.url, {f'question_{self.q1.id}': self.right.id})
         self.client.get(self.analysis_url)
         self.assertEqual(QuizAttempt.objects.filter(user=self.user, quiz=self.quiz).count(), 1)
+
+
+class QuizAnalysisAttemptSelectionTests(TestCase):
+    """`?attempt=<id>` opens one specific attempt. The Progress page links
+    every attempt row including older retakes, so a row the student picked by
+    its score has to show that score's answers, not the newest ones."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='student', password='pass12345')
+        self.client.force_login(self.user)
+
+        chapter = make_chapter(make_subject(make_class(), 'Maths'), 'Numbers')
+        self.quiz = Quiz.objects.create(chapter=chapter, title='Numbers Quiz', pass_percentage=60)
+        self.url = reverse('quiz', args=['class-6', 'maths', 'numbers'])
+        self.analysis_url = reverse('quiz_analysis', args=['class-6', 'maths', 'numbers'])
+
+        self.q1 = Question.objects.create(quiz=self.quiz, text='2 + 2 = ?', order=1)
+        self.right = Choice.objects.create(question=self.q1, text='4', is_correct=True)
+        self.wrong = Choice.objects.create(question=self.q1, text='5', is_correct=False)
+
+        # Failed first, passed on the retake.
+        self.client.post(self.url, {f'question_{self.q1.id}': self.wrong.id})
+        self.client.post(self.url, {f'question_{self.q1.id}': self.right.id})
+        self.failed, self.passed = QuizAttempt.objects.filter(
+            user=self.user, quiz=self.quiz
+        ).order_by('attempted_at')
+
+    def test_requesting_an_older_attempt_shows_that_attempt(self):
+        response = self.client.get(self.analysis_url, {'attempt': self.failed.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['attempt'], self.failed)
+        self.assertEqual(response.context['attempt'].score, 0)
+        self.assertContains(response, 'Not quite yet')
+
+    def test_requesting_the_newer_attempt_shows_that_attempt(self):
+        response = self.client.get(self.analysis_url, {'attempt': self.passed.id})
+        self.assertEqual(response.context['attempt'], self.passed)
+        self.assertContains(response, 'You passed')
+
+    def test_no_parameter_still_shows_the_most_recent_attempt(self):
+        """The chapter and lesson "View analysis" buttons pass no id."""
+        response = self.client.get(self.analysis_url)
+        self.assertEqual(response.context['attempt'], self.passed)
+
+    def test_another_users_attempt_id_is_not_viewable(self):
+        other = User.objects.create_user(username='other', password='pass12345')
+        theirs = QuizAttempt.objects.create(
+            user=other, quiz=self.quiz, score=1, total=1, passed=True
+        )
+        response = self.client.get(self.analysis_url, {'attempt': theirs.id})
+        self.assertEqual(response.status_code, 404)
+
+    def test_unknown_attempt_id_404s(self):
+        response = self.client.get(self.analysis_url, {'attempt': self.passed.id + 9999})
+        self.assertEqual(response.status_code, 404)
+
+    def test_non_numeric_attempt_id_404s_instead_of_crashing(self):
+        response = self.client.get(self.analysis_url, {'attempt': 'abc'})
+        self.assertEqual(response.status_code, 404)
+
+    def test_oversized_attempt_id_404s_instead_of_crashing(self):
+        """Postgres refuses an integer wider than the column; it must not 500."""
+        response = self.client.get(self.analysis_url, {'attempt': '9' * 40})
+        self.assertEqual(response.status_code, 404)
