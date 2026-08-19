@@ -85,8 +85,10 @@
 
     <div class="d-flex flex-column gap-3">
       {% for attempt in attempts %}
-      {# ?attempt= pins the row to its own analysis: the list includes older
-         retakes, and without it every row would open the newest attempt. #}
+      {% comment %}
+        ?attempt= pins the row to its own analysis: the list includes older
+        retakes, and without it every row would open the newest attempt.
+      {% endcomment %}
       <a class="card-link d-flex align-items-center justify-content-between gap-3 flex-wrap"
          style="padding: var(--space-5)"
          href="{% url 'quiz_analysis' attempt.quiz.chapter.subject.klass.slug attempt.quiz.chapter.subject.slug attempt.quiz.chapter.slug %}?attempt={{ attempt.id }}">
