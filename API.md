@@ -40,7 +40,7 @@ table and the one genuine JSON endpoint.
 | GET | `/` | `landing` | `landing` | public (redirects to dashboard if logged in) |
 | GET | `/register/` | `register_view` | `register` | public — Google-only signup entry point |
 | GET/POST | `/login/` | `login_view` | `login` | public; rate-limited (`LOGIN_RATE_LIMIT`, key=ip) |
-| GET | `/logout/` | `logout_view` | `logout` | any |
+| POST | `/logout/` | `logout_view` | `logout` | any; `@require_POST` + CSRF — a GET logout could be fired by a prefetch or an `<img>` tag |
 | GET | `/accounts/google/login/` | `google_login_view` | `google_login` | public |
 | GET | `/accounts/google/callback/` | `google_callback_view` | `google_callback` | public; rate-limited (key=ip) |
 | GET/POST | `/accounts/google/complete-profile/` | `google_complete_profile_view` | `google_complete_profile` | requires valid `pending_google` session; rate-limited (`REGISTRATION_RATE_LIMIT`) |
@@ -63,6 +63,7 @@ table and the one genuine JSON endpoint.
 | Method | Path | View | Name | Auth |
 |---|---|---|---|---|
 | GET | `/dashboard/` | `dashboard` | `dashboard` | `@login_required` |
+| GET | `/my-progress/` | `my_progress` | `my_progress` | `@login_required`; the student's own report card — per-class completion, quiz marks, study time |
 | POST | `/lesson/<int:lesson_id>/mark-watched/` | `mark_watched` | `mark_watched` | `@login_required`, JSON — see above |
 
 ### `quizzes` (mounted at project root)
@@ -70,7 +71,7 @@ table and the one genuine JSON endpoint.
 | Method | Path | View | Name | Auth |
 |---|---|---|---|---|
 | GET/POST | `/quiz/<class_slug>/<subject_slug>/<chapter_slug>/` | `quiz_view` | `quiz` | `@login_required`; POST scores + records a `QuizAttempt` |
-| GET | `/quiz/<class_slug>/<subject_slug>/<chapter_slug>/analysis/` | `quiz_analysis_view` | `quiz_analysis` | `@login_required`; re-renders the most recent attempt |
+| GET | `/quiz/<class_slug>/<subject_slug>/<chapter_slug>/analysis/` | `quiz_analysis_view` | `quiz_analysis` | `@login_required`; re-renders the most recent attempt, or the one named by `?attempt=<id>` (scoped to the requesting user, so another student's id 404s) |
 
 ### `admin_panel` (mounted at `/panel/`, namespace `ap`)
 

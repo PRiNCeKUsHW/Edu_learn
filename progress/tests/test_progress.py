@@ -251,3 +251,32 @@ class MyProgressQueryCountTests(TestCase):
         # the attempt list, the four quiz-stat aggregates, study minutes, the
         # streak day set, plus the session/auth lookups the test client makes.
         self.assertLess(len(ctx.captured_queries), 15)
+
+
+class MyProgressQuizLinkTests(TestCase):
+    """Every quiz row links to its own attempt. Pinning the id matters
+    because the list shows retakes: without ?attempt= both rows of a retaken
+    quiz would open the newest attempt's answers."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='student', password='pass12345')
+        self.client.force_login(self.user)
+        chapter = make_chapter(make_subject(make_class('Class 10'), 'Mathematics'), 'Real Numbers')
+        self.quiz = make_quiz(chapter, title='Real Numbers Quiz', questions=1)
+        self.first = QuizAttempt.objects.create(
+            user=self.user, quiz=self.quiz, score=4, total=10, passed=False)
+        self.retake = QuizAttempt.objects.create(
+            user=self.user, quiz=self.quiz, score=8, total=10, passed=True)
+
+    def test_each_row_links_to_its_own_attempt(self):
+        html = self.client.get(reverse('my_progress')).content.decode()
+        base = reverse('quiz_analysis', args=['class-10', 'mathematics', 'real-numbers'])
+        self.assertIn(f'{base}?attempt={self.first.id}', html)
+        self.assertIn(f'{base}?attempt={self.retake.id}', html)
+
+    def test_the_link_resolves_to_that_attempts_analysis(self):
+        """Follows the rendered link rather than trusting the URL shape."""
+        base = reverse('quiz_analysis', args=['class-10', 'mathematics', 'real-numbers'])
+        response = self.client.get(base, {'attempt': self.first.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['attempt'], self.first)
