@@ -60,9 +60,9 @@
       <div class="ap-card-body d-flex flex-column gap-2">
         {% for choice in choices %}
         <div class="d-flex align-items-center gap-3 p-3 rounded-3"
-             style="background:{% if choice.is_correct %}#f0fdf4{% else %}var(--surface-2){% endif %};border:1px solid {% if choice.is_correct %}#bbf7d0{% else %}var(--border){% endif %};">
-          <i class="bi {% if choice.is_correct %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %} fs-5"></i>
-          <span style="flex:1;font-size:.875rem;">{{ choice.text }}</span>
+             style="background:{% if choice.is_correct %}var(--success-soft){% else %}var(--surface-2){% endif %};border:1px solid {% if choice.is_correct %}var(--success){% else %}var(--border){% endif %};">
+          <i class="bi {% if choice.is_correct %}bi-check-circle-fill{% else %}bi-circle{% endif %} fs-5" style="color:{% if choice.is_correct %}var(--success){% else %}var(--text-muted){% endif %};"></i>
+          <span style="flex:1;font-size:.875rem;color:{% if choice.is_correct %}var(--success){% else %}var(--text){% endif %};{% if choice.is_correct %}font-weight:600;{% endif %}">{{ choice.text }}</span>
           {% if choice.is_correct %}
             <span class="ap-badge ap-badge-green">Correct</span>
           {% endif %}
