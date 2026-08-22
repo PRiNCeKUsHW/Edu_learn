@@ -86,9 +86,9 @@
   </section>
 
   {% empty %}
-  {# An empty dashboard is now the normal first-run state -- a new student is
+  {% comment %}An empty dashboard is now the normal first-run state -- a new student is
      enrolled in nothing -- so point them at the catalogue below rather than
-     implying the site has no content. #}
+     implying the site has no content.{% endcomment %}
   <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Your courses</div>
   <div class="empty" style="margin-bottom: var(--space-7)">
     {% if available_classes %}
@@ -96,8 +96,8 @@
     <div style="color: var(--text); font-weight: 600">You haven't enrolled in a course yet</div>
     <div class="t-meta" style="margin-top: 0.25rem">Pick one from the list below to get started.</div>
     {% else %}
-    {# Genuinely nothing published -- not an enrolment prompt, since there is
-       nothing to enrol in. #}
+    {% comment %}Genuinely nothing published -- not an enrolment prompt, since there is
+       nothing to enrol in.{% endcomment %}
     <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
     <div style="color: var(--text); font-weight: 600">Nothing here yet</div>
     <div class="t-meta" style="margin-top: 0.25rem">Content is being added. Check back soon.</div>

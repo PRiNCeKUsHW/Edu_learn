@@ -1,6 +1,7 @@
 """Settings-level tests — not app behaviour, but config logic worth locking
 in without needing a live database of either kind.
 """
+import re
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -79,3 +80,36 @@ class EnsureLogDirTests(SimpleTestCase):
         function exists for — without needing an actual read-only mount."""
         with mock.patch.object(Path, 'mkdir', side_effect=PermissionError('Read-only file system')):
             self.assertFalse(ensure_log_dir(Path('/some/path')))
+
+
+class TemplateCommentSyntaxTests(SimpleTestCase):
+    """Django's `{# #}` comment is single-line only.
+
+    Spanning one across a newline means it is never parsed as a comment: the
+    whole thing renders as literal text on the page. It looks harmless in an
+    editor, which is why it has slipped through twice -- once on the Progress
+    page, once on the dashboard's enrolment cards. This checks every template
+    in the project, including ones no test happens to render.
+    """
+
+    # Matches a {# ... #} pair non-greedily, so two comments on one line stay
+    # separate rather than merging into one span that looks multi-line.
+    COMMENT = re.compile(r'\{#(?:(?!#\}).)*?#\}', re.S)
+
+    def test_no_comment_tag_spans_multiple_lines(self):
+        offenders = []
+        template_root = Path(__file__).resolve().parent.parent / 'templates'
+
+        for path in sorted(template_root.rglob('*.html')):
+            text = path.read_text()
+            for match in self.COMMENT.finditer(text):
+                if '\n' in match.group(0):
+                    line = text[:match.start()].count('\n') + 1
+                    offenders.append(f'{path.relative_to(template_root)}:{line}')
+
+        self.assertEqual(
+            offenders, [],
+            'These {# #} comments span multiple lines and will render as '
+            'visible text. Use {% comment %}...{% endcomment %} instead: '
+            + ', '.join(offenders)
+        )
