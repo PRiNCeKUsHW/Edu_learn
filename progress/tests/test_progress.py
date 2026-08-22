@@ -13,7 +13,7 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
 from curriculum.models import Lesson
-from progress.models import LessonProgress
+from progress.models import Enrollment, LessonProgress
 from quizzes.models import QuizAttempt
 from curriculum.tests.factories import (
     make_chapter, make_class, make_content, make_lesson, make_quiz, make_subject,
@@ -72,6 +72,13 @@ class DashboardCalculationTests(TestCase):
         # division-by-zero when computing its percentage.
         self.empty_class = make_class('Class 7')
         make_chapter(make_subject(self.empty_class, 'Science'), 'Empty')
+
+
+        # The dashboard now renders only courses the student has joined. These
+        # assertions are about the aggregation maths, so enrol in the fixture's
+        # courses and leave the filtering itself to test_enrollment.py.
+        for course in (klass, self.empty_class):
+            Enrollment.objects.create(user=self.user, klass=course)
 
         # Watch 3 of the 4 maths lessons -> 75% overall (4 total lessons project-wide).
         for lesson in self.lessons[:3]:
@@ -154,7 +161,14 @@ class MyProgressTests(TestCase):
 
         # A class holding a chapter but no lessons — must be dropped, not
         # rendered at 0%, and must not divide by zero.
-        make_chapter(make_subject(make_class('Class 7'), 'Science'), 'Intro')
+        empty_class = make_class('Class 7')
+        make_chapter(make_subject(empty_class, 'Science'), 'Intro')
+
+        # The dashboard now renders only courses the student has joined. These
+        # assertions are about the aggregation maths, so enrol in the fixture's
+        # courses and leave the filtering itself to test_enrollment.py.
+        for course in (klass, empty_class):
+            Enrollment.objects.create(user=self.user, klass=course)
 
         # Marks: 5/10 (50%, failed) and 9/10 (90%, passed) on one quiz,
         # 2/4 (50%, failed) on another. Average of 50, 90, 50 = 63.33 -> 63.

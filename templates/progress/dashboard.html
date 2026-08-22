@@ -86,13 +86,41 @@
   </section>
 
   {% empty %}
-  <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Your classes</div>
-  <div class="empty">
+  {# An empty dashboard is now the normal first-run state -- a new student is
+     enrolled in nothing -- so point them at the catalogue below rather than
+     implying the site has no content. #}
+  <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Your courses</div>
+  <div class="empty" style="margin-bottom: var(--space-7)">
+    {% if available_classes %}
+    <i class="bi bi-journal-plus empty-icon" aria-hidden="true"></i>
+    <div style="color: var(--text); font-weight: 600">You haven't enrolled in a course yet</div>
+    <div class="t-meta" style="margin-top: 0.25rem">Pick one from the list below to get started.</div>
+    {% else %}
+    {# Genuinely nothing published -- not an enrolment prompt, since there is
+       nothing to enrol in. #}
     <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
     <div style="color: var(--text); font-weight: 600">Nothing here yet</div>
     <div class="t-meta" style="margin-top: 0.25rem">Content is being added. Check back soon.</div>
+    {% endif %}
   </div>
   {% endfor %}
+
+  <!-- ── Courses still on offer ── -->
+  {% if available_classes %}
+  <section aria-labelledby="availableCourses" style="margin-bottom: var(--space-7)">
+    <div class="d-flex align-items-center gap-2" style="margin-bottom: var(--space-3)">
+      <i class="bi bi-compass" aria-hidden="true"></i>
+      <span id="availableCourses" class="t-eyebrow">Available courses</span>
+      <span class="chip">{{ available_classes|length }}</span>
+    </div>
+
+    <div class="row g-3">
+      {% for klass in available_classes %}
+      {% include 'curriculum/_enroll_card.html' %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 
 </div>
 {% endblock %}

@@ -14,7 +14,7 @@ from django.db.models.functions import TruncDate
 from curriculum.models import Class, Lesson
 from quizzes.models import QuizAttempt
 
-from .models import LessonProgress
+from .models import Enrollment, LessonProgress
 
 # score/total as a percentage the database can average over. QuizAttempt
 # .percentage is a Python property, so it can't be used in an aggregate --
@@ -60,15 +60,32 @@ def week_activity(day_set, today, days=7):
     ]
 
 
-def annotate_class_progress(user):
+def enrolled_class_ids(user):
+    """Ids of the classes this user has enrolled in."""
+    return set(
+        Enrollment.objects.filter(user=user).values_list('klass_id', flat=True)
+    )
+
+
+def annotate_class_progress(user, enrolled_only=False):
     """Active classes, each carrying this user's watch counts.
+
+    With enrolled_only, narrowed to the courses the user actually enrolled in.
 
     One aggregate query for every class instead of 2 per class. `distinct=True`
     is load-bearing: the subjects->chapters->lessons join fans out, so a plain
     Count would multiply rows. Progress rows are created lazily when a lesson
     page is opened, so watched=True is what makes the count mean anything.
     """
-    return Class.objects.filter(is_active=True).select_related('kind').annotate(
+    classes = Class.objects.filter(is_active=True)
+    if enrolled_only:
+        # A pk__in subquery rather than .filter(enrollments__user=user): this
+        # queryset already carries three Count(distinct=True) annotations over
+        # subjects->chapters->lessons, and another join is a needless fan-out
+        # risk for a filter that selects at most one enrollment row per class.
+        classes = classes.filter(pk__in=enrolled_class_ids(user))
+
+    return classes.select_related('kind').annotate(
         total_lessons=Count('subjects__chapters__lessons', distinct=True),
         watched_lessons=Count(
             'subjects__chapters__lessons__progress',
@@ -82,7 +99,7 @@ def annotate_class_progress(user):
     )
 
 
-def class_progress_rows(user):
+def class_progress_rows(user, enrolled_only=False):
     """Per-class completion rows for a report card.
 
     Classes with no lessons are dropped rather than shown at 0% -- an empty
@@ -96,7 +113,7 @@ def class_progress_rows(user):
             'percent': round((klass.watched_lessons / klass.total_lessons) * 100)
                        if klass.total_lessons else 0,
         }
-        for klass in annotate_class_progress(user) if klass.total_lessons
+        for klass in annotate_class_progress(user, enrolled_only) if klass.total_lessons
     ]
 
 

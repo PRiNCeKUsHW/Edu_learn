@@ -1,0 +1,34 @@
+{# One available-course card. `klass` is a curriculum.Class the viewer has not
+   enrolled in yet. Mirrors _class_card.html, but the progress ring and
+   chevron give way to an Enroll button: there is no progress to show and
+   nothing to drill into until the student enrols. #}
+<div class="col-md-6">
+  <div class="panel h-100 d-flex align-items-center gap-3 reveal reveal-4">
+
+    <span class="flex-shrink-0" aria-hidden="true">
+      {% if klass.thumbnail %}
+      <img src="{{ klass.thumbnail.url }}" alt="" style="width: 40px; height: 40px; border-radius: var(--radius-sm); object-fit: cover" />
+      {% else %}
+      <i class="bi {{ klass.icon }} text-accent" style="font-size: 1.5rem"></i>
+      {% endif %}
+    </span>
+
+    <span class="flex-grow-1" style="min-width: 0">
+      <span class="d-flex align-items-center gap-2 flex-wrap" style="margin-bottom: 0.15rem">
+        <span style="font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem">{{ klass.name }}</span>
+        {% if klass.kind %}<span class="chip">{{ klass.kind.name }}</span>{% endif %}
+      </span>
+      {% if klass.description %}
+      <span class="t-meta d-block truncate-1">{{ klass.description }}</span>
+      {% endif %}
+    </span>
+
+    <form method="post" action="{% url 'enroll' klass.slug %}" class="flex-shrink-0">
+      {% csrf_token %}
+      <button class="btn btn-accent btn-sm-q" type="submit">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>Enroll
+      </button>
+    </form>
+
+  </div>
+</div>

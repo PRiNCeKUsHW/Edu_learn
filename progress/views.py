@@ -1,17 +1,19 @@
 from django.shortcuts import get_object_or_404
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from curriculum.models import Lesson
+from curriculum.models import Class, Lesson
 from quizzes.models import QuizAttempt
 
-from .models import LessonProgress
+from .models import Enrollment, LessonProgress
 from .selectors import (
     annotate_class_progress,
     class_progress_rows,
+    enrolled_class_ids,
     quiz_stats,
     study_minutes,
     study_streak,
@@ -53,7 +55,7 @@ def _resume_target(user):
 
 @login_required
 def dashboard(request):
-    classes = annotate_class_progress(request.user)
+    classes = annotate_class_progress(request.user, enrolled_only=True)
 
     class_data = []
     # Every CourseKind the admin creates becomes its own dashboard section.
@@ -108,6 +110,12 @@ def dashboard(request):
             user=request.user, passed=True
         ).values('quiz').distinct().count(),
         'resume_lesson': _resume_target(request.user),
+        # Everything still on offer. Rendered with an Enroll button; the
+        # enrolled sections above deliberately carry none, so an already-
+        # enrolled course is never offered a redundant enroll.
+        'available_classes': Class.objects.filter(is_active=True)
+                                  .exclude(pk__in=enrolled_class_ids(request.user))
+                                  .select_related('kind'),
     })
 
 
@@ -136,7 +144,7 @@ def my_progress(request):
     """
     today = timezone.localdate()
     day_set = watched_day_set(request.user)
-    class_progress = class_progress_rows(request.user)
+    class_progress = class_progress_rows(request.user, enrolled_only=True)
 
     watched_all = sum(row['watched_lessons'] for row in class_progress)
     total_all = sum(row['total_lessons'] for row in class_progress)
@@ -157,3 +165,27 @@ def my_progress(request):
         'streak': study_streak(day_set, today),
         'week_activity': week_activity(day_set, today),
     })
+
+
+@login_required
+@require_POST
+def enroll(request, class_slug):
+    """Enrol the student in one course.
+
+    POST-only for the same reason logout is: a GET enrol could be fired by a
+    prefetch or an <img> tag, signing someone up without them clicking. Only
+    the course named in the URL is touched -- enrolling must never fan out to
+    the rest of the catalogue.
+    """
+    klass = get_object_or_404(Class, slug=class_slug, is_active=True)
+
+    # get_or_create over the unique_together makes a repeat click a no-op
+    # rather than an IntegrityError, so a double submit or a back-button
+    # replay costs nothing.
+    _, created = Enrollment.objects.get_or_create(user=request.user, klass=klass)
+
+    if created:
+        messages.success(request, f'You are now enrolled in {klass.name}.')
+    else:
+        messages.info(request, f'You are already enrolled in {klass.name}.')
+    return redirect('dashboard')

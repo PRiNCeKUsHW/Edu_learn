@@ -10,6 +10,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from curriculum.models import Class, CourseKind, Subject
+from progress.models import Enrollment
 from curriculum.tests.factories import (
     make_chapter, make_class, make_content, make_kind, make_lesson, make_quiz,
     make_student, make_subject,
@@ -74,6 +75,9 @@ class BrowsingTests(TestCase):
         self.chemistry = make_subject(self.klass, 'Chemistry')
         self.chapter = make_chapter(self.physics, 'Mechanics')
         self.lesson = make_lesson(self.chapter, 'Force')
+        # The dashboard shows only enrolled courses; this fixture is about what
+        # the dashboard lists, not about enrolment filtering.
+        Enrollment.objects.create(user=self.user, klass=self.klass)
 
     def test_dashboard_lists_classes_not_subjects(self):
         response = self.client.get(reverse('dashboard'))
@@ -134,7 +138,15 @@ class DashboardGroupingTests(TestCase):
         self.user = make_student()
         self.client.force_login(self.user)
 
+    def enrol_all(self):
+        """The dashboard shows only enrolled courses. These tests are about how
+        enrolled courses are grouped into kind sections, so enrol in whatever
+        the test just created -- each one builds its own classes after setUp."""
+        for klass in Class.objects.filter(is_active=True):
+            Enrollment.objects.get_or_create(user=self.user, klass=klass)
+
     def groups(self):
+        self.enrol_all()
         response = self.client.get(reverse('dashboard'))
         return response, [
             (g['kind'].name if g['kind'] else None, [c['klass'].name for c in g['classes']])
@@ -196,6 +208,7 @@ class DashboardGroupingTests(TestCase):
         klass, subject, chapter, lesson = make_content('Class 2', 'Maths')
         klass.kind = make_kind('School')
         klass.save()
+        self.enrol_all()
         response = self.client.get(reverse('dashboard'))
         self.assertEqual(response.context['total_all'], 1)
         self.assertEqual(len(response.context['class_data']), 1)
