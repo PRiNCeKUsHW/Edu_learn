@@ -240,7 +240,11 @@ class VisibilityTests(TestCase):
 
         picker = self.client.get(reverse('subject_list', args=['class-2']))
         self.assertEqual(picker.status_code, 200)
-        self.assertNotContains(picker, 'Maths')
+        # Checked against the listed subjects, not the raw page text: the
+        # site's own name, "MathsToons", is on every page.
+        listed = [row['subject'].name for row in picker.context['subject_data']]
+        self.assertNotIn('Maths', listed)
+        self.assertNotContains(picker, reverse('chapter_list', args=['class-2', 'maths']))
         self.assertContains(picker, 'Science')
 
         self.assertEqual(

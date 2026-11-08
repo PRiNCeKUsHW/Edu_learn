@@ -1,83 +1,161 @@
 {% extends 'base.html' %}
-{% block title %}EduLearn — Learn at your own pace{% endblock %}
-{% block meta_description %}Video lessons, chapter quizzes and downloadable notes for school classes, coaching batches and skill courses. Free to join.{% endblock %}
+{% block title %}MathsToons — Where Numbers Come Alive{% endblock %}
+{% block meta_description %}Learn school maths with animated video lessons, chapter quizzes and progress tracking — free, in English and Hinglish, from the MathsToons YouTube channel.{% endblock %}
 
 {% block content %}
 
 <!-- ── Hero ── -->
-<section class="container-narrow" style="padding-top: var(--space-9); padding-bottom: var(--space-8); text-align: center">
-  <span class="chip chip-accent reveal reveal-1" style="margin-bottom: var(--space-5)">
-    <i class="bi bi-mortarboard-fill" aria-hidden="true"></i>School, coaching &amp; skill courses
-  </span>
+<section class="hero">
+  <div class="container-page">
+    <div class="row g-5 align-items-center">
 
-  <h1 class="t-display reveal reveal-2" style="margin-bottom: var(--space-4)">
-    Learn at your<br />own pace.
-  </h1>
+      <div class="col-lg-6">
+        <span class="chip chip-accent reveal reveal-1" style="margin-bottom: var(--space-4)">
+          <i class="bi bi-translate" aria-hidden="true"></i>English + Hinglish · Free
+        </span>
 
-  <p class="t-lead reveal reveal-3" style="max-width: 46ch; margin-inline: auto; margin-bottom: var(--space-6)">
-    Video lessons, chapter quizzes and downloadable notes — with your progress tracked, lesson by lesson.
-  </p>
+        <h1 class="t-display reveal reveal-2" style="margin-bottom: var(--space-4)">
+          Where numbers <span class="marker" style="color: inherit">come alive.</span>
+        </h1>
 
-  <div class="d-flex flex-wrap gap-2 justify-content-center reveal reveal-4">
-    <a class="btn btn-accent btn-lg-q" href="{% url 'register' %}">
-      Get started free<i class="bi bi-arrow-right" aria-hidden="true"></i>
+        <p class="t-lead reveal reveal-3" style="max-width: 48ch; margin-bottom: var(--space-6)">
+          Short, animated maths lessons from the MathsToons YouTube channel, laid out chapter by
+          chapter, with a quiz at the end of each one. Watch it, try it, and see your progress grow.
+        </p>
+
+        <div class="d-flex flex-wrap gap-3 reveal reveal-4">
+          <a class="btn btn-accent btn-lg-q" href="{% url 'register' %}">
+            Start learning free<i class="bi bi-arrow-right" aria-hidden="true"></i>
+          </a>
+          <a class="btn btn-quiet btn-lg-q" href="{{ YOUTUBE_CHANNEL_URL }}" target="_blank" rel="noopener">
+            <i class="bi bi-youtube" style="color: #ff2d2d" aria-hidden="true"></i>See the channel<span class="sr-only"> (opens in a new tab)</span>
+          </a>
+        </div>
+
+        <ul class="d-flex flex-wrap gap-3 t-meta reveal reveal-4" style="list-style: none; padding: 0; margin: var(--space-4) 0 0">
+          <li><i class="bi bi-check2-circle text-success-ink" aria-hidden="true"></i> Free</li>
+          <li><i class="bi bi-google" aria-hidden="true"></i> Sign in with Google</li>
+          <li><i class="bi bi-phone" aria-hidden="true"></i> Works on your phone</li>
+        </ul>
+      </div>
+
+      <div class="col-lg-6 reveal reveal-2">
+        {% include 'partials/hero_board.html' %}
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Classes ── -->
+{% if classes %}
+<section id="classes" class="container-page" style="padding-top: var(--space-6); padding-bottom: var(--space-7); scroll-margin-top: var(--nav-h)">
+  <div class="section-head">
+    <div>
+      <span class="t-eyebrow">Pick your class</span>
+      <h2 class="t-h2" style="margin-top: 0.2rem">Every chapter, in order</h2>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    {% for klass in classes %}
+    <div class="col-6 col-md-4 col-xl-3">
+      <a class="class-tile tile-{% cycle '0' '1' '2' '3' '4' '5' %}" href="{% url 'subject_list' klass.slug %}">
+        <i class="bi {{ klass.icon }} class-icon" aria-hidden="true"></i>
+        <span class="class-num">{{ klass.name }}</span>
+        <span class="class-meta">
+          {% if klass.lesson_count %}{{ klass.chapter_count }} chapter{{ klass.chapter_count|pluralize }} · {{ klass.lesson_count }} lesson{{ klass.lesson_count|pluralize }}{% else %}Lessons coming soon{% endif %}
+        </span>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ── Latest lessons ── -->
+{% if latest_lessons %}
+<section class="container-page" style="padding-bottom: var(--space-7)">
+  <div class="section-head">
+    <div>
+      <span class="t-eyebrow">Fresh from the channel</span>
+      <h2 class="t-h2" style="margin-top: 0.2rem">Latest lessons</h2>
+    </div>
+    <a class="btn btn-ghost btn-sm-q d-none d-sm-inline-flex" href="{{ YOUTUBE_CHANNEL_URL }}/videos" target="_blank" rel="noopener">
+      All videos<i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="sr-only"> (opens in a new tab)</span>
     </a>
-    <a class="btn btn-quiet btn-lg-q" href="{% url 'login' %}">Log in</a>
   </div>
-
-  <p class="t-meta reveal reveal-4" style="margin-top: var(--space-4)">
-    <i class="bi bi-check2 text-success-ink" aria-hidden="true"></i>
-    No payment needed. Nothing to install.
-  </p>
-</section>
-
-<hr class="rule" style="max-width: 1180px; margin-inline: auto" />
-
-<!-- ── Three benefits ── -->
-<section class="container-page" style="padding-top: var(--space-7); padding-bottom: var(--space-8)">
-  <div class="row g-4">
-
-    <div class="col-md-4">
-      <div style="padding-right: var(--space-3)">
-        <i class="bi bi-play-btn text-accent" style="font-size: 1.5rem" aria-hidden="true"></i>
-        <h2 class="t-h2" style="font-size: 1.125rem; margin-top: var(--space-3); margin-bottom: 0.4rem">Watch</h2>
-        <p class="t-meta" style="font-size: 0.9375rem">
-          Concept-wise video lessons for every chapter, organised the way your syllabus is.
-        </p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div style="padding-right: var(--space-3)">
-        <i class="bi bi-patch-question text-accent" style="font-size: 1.5rem" aria-hidden="true"></i>
-        <h2 class="t-h2" style="font-size: 1.125rem; margin-top: var(--space-3); margin-bottom: 0.4rem">Practise</h2>
-        <p class="t-meta" style="font-size: 0.9375rem">
-          Take a quiz at the end of each chapter and see which answers you got wrong, and why.
-        </p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div style="padding-right: var(--space-3)">
-        <i class="bi bi-graph-up-arrow text-accent" style="font-size: 1.5rem" aria-hidden="true"></i>
-        <h2 class="t-h2" style="font-size: 1.125rem; margin-top: var(--space-3); margin-bottom: 0.4rem">Track</h2>
-        <p class="t-meta" style="font-size: 0.9375rem">
-          Mark lessons as watched, build a study streak, and always know what's left.
-        </p>
-      </div>
-    </div>
-
+  <div class="rail">
+    {% for lesson in latest_lessons %}
+    <div>{% include 'partials/lesson_card.html' %}</div>
+    {% endfor %}
   </div>
 </section>
+{% endif %}
 
-<!-- ── Closing CTA ── -->
-<section class="container-narrow" style="padding-bottom: var(--space-9); text-align: center">
-  <div class="panel-lg" style="border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--bg-subtle)">
-    <h2 class="t-h2" style="margin-bottom: 0.5rem">Ready to start?</h2>
-    <p class="t-meta" style="margin-bottom: var(--space-5); font-size: 0.9375rem">
-      Create an account and pick your class. It takes a minute.
-    </p>
-    <a class="btn btn-accent btn-lg-q" href="{% url 'register' %}">Create free account</a>
+<!-- ── How it works ── -->
+<section class="container-page" style="padding-bottom: var(--space-7)">
+  <div class="section-head">
+    <div>
+      <span class="t-eyebrow">How it works</span>
+      <h2 class="t-h2" style="margin-top: 0.2rem">Three steps per chapter</h2>
+    </div>
+  </div>
+  <ol class="row g-3" style="list-style: none; padding: 0; margin: 0">
+    <li class="col-md-4">
+      <div class="step">
+        <span class="step-num" style="--_step: #4db1ff">1</span>
+        <h3 class="t-h3">Watch</h3>
+        <p class="t-meta" style="font-size: 0.95rem; margin: 0">
+          Each idea gets its own short animated video, played right here, so you never lose your place.
+        </p>
+      </div>
+    </li>
+    <li class="col-md-4">
+      <div class="step">
+        <span class="step-num" style="--_step: #ff9433">2</span>
+        <h3 class="t-h3">Try the quiz</h3>
+        <p class="t-meta" style="font-size: 0.95rem; margin: 0">
+          Finish a chapter, then test yourself. You'll see every right answer and why it's right.
+        </p>
+      </div>
+    </li>
+    <li class="col-md-4">
+      <div class="step">
+        <span class="step-num" style="--_step: #3de3a6">3</span>
+        <h3 class="t-h3">Watch yourself improve</h3>
+        <p class="t-meta" style="font-size: 0.95rem; margin: 0">
+          Your lessons, quiz marks and study streak are saved, so you can retake a quiz and beat your score.
+        </p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- ── Channel CTA ── -->
+<section class="container-page">
+  <div class="banner">
+    <div class="row g-4 align-items-center">
+      <div class="col-md-8">
+        <p class="t-hand text-sun" style="font-size: 1.5rem; margin-bottom: 0.25rem">Where Numbers Come Alive!</p>
+        <h2 class="t-h1" style="margin-bottom: var(--space-3)">Free, and made for you.</h2>
+        <p class="t-lead" style="max-width: 50ch; margin-bottom: var(--space-5)">
+          Join free to save your progress and take the quizzes. New lessons appear on YouTube first,
+          so subscribe to see them as soon as they're out.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <a class="btn btn-accent btn-lg-q" href="{% url 'register' %}">Join free</a>
+          <a class="btn btn-youtube btn-lg-q" href="{{ YOUTUBE_CHANNEL_URL }}?sub_confirmation=1" target="_blank" rel="noopener">
+            <i class="bi bi-youtube" aria-hidden="true"></i>Subscribe<span class="sr-only"> (opens in a new tab)</span>
+          </a>
+        </div>
+      </div>
+      <div class="col-md-4 d-none d-md-block">
+        <div style="max-width: 210px; margin-inline: auto" class="mascot-float">
+          {% include 'partials/mascot.html' with uid='cta' mood='cheer' %}
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 

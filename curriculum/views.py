@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
+from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
 
 from discussions.forms import CommentForm
@@ -13,6 +14,7 @@ from progress.models import LessonProgress
 from quizzes.models import QuizAttempt
 
 from .models import Chapter, Class, Lesson, Subject
+from .selectors import attach_positions
 
 logger = logging.getLogger(__name__)
 
@@ -80,12 +82,29 @@ def chapter_list(request, class_slug, subject_slug):
         ).values_list('quiz_id', flat=True)
     )
 
+    # Materialised so each chapter can carry its own completion figures; the
+    # template can't count watched lessons per chapter on its own.
+    chapters = list(chapters)
+    total_lessons = watched_lessons = 0
+    for chapter in chapters:
+        lessons = list(chapter.lessons.all())
+        for index, lesson in enumerate(lessons, start=1):
+            lesson.ep_index, lesson.ep_total = index, len(lessons)
+        chapter.lesson_list = lessons
+        chapter.watched_count = sum(1 for lesson in lessons if lesson.id in watched_ids)
+        chapter.percent = round(chapter.watched_count / len(lessons) * 100) if lessons else 0
+        total_lessons += len(lessons)
+        watched_lessons += chapter.watched_count
+
     return render(request, 'curriculum/chapter_list.html', {
         'klass': klass,
         'subject': subject,
         'chapters': chapters,
         'watched_ids': watched_ids,
         'attempted_quiz_ids': attempted_quiz_ids,
+        'total_lessons': total_lessons,
+        'watched_lessons': watched_lessons,
+        'subject_percent': round(watched_lessons / total_lessons * 100) if total_lessons else 0,
     })
 
 
@@ -105,6 +124,10 @@ def lesson_detail(request, class_slug, subject_slug, chapter_slug, lesson_slug):
     progress, _ = LessonProgress.objects.get_or_create(
         user=request.user, lesson=lesson
     )
+    # .update() rather than progress.save(): touches one column, and can't
+    # race a concurrent mark_watched into overwriting `watched`.
+    if request.method == 'GET':
+        LessonProgress.objects.filter(pk=progress.pk).update(last_viewed_at=timezone.now())
 
     resources = lesson.resources.all()
     # Comment posting stays inline here rather than its own discussions view:
@@ -152,6 +175,26 @@ def lesson_detail(request, class_slug, subject_slug, chapter_slug, lesson_slug):
         user=request.user, quiz=quiz
     ).exists()
 
+    chapter_watched_ids = set(
+        LessonProgress.objects.filter(
+            user=request.user, watched=True, lesson__chapter=chapter
+        ).values_list('lesson_id', flat=True)
+    )
+
+    # "More in this subject": the chapters after this one first, since that is
+    # where the student is heading; earlier chapters only fill any remaining
+    # slots near the end of a subject.
+    related = list(
+        Lesson.objects.filter(chapter__subject=subject, chapter__order__gt=chapter.order)
+        .select_related('chapter').order_by('chapter__order', 'order')[:4]
+    )
+    if len(related) < 4:
+        related += list(
+            Lesson.objects.filter(chapter__subject=subject, chapter__order__lt=chapter.order)
+            .select_related('chapter').order_by('-chapter__order', 'order')[:4 - len(related)]
+        )
+    attach_positions(related)
+
     return render(request, 'curriculum/lesson_detail.html', {
         'klass': klass,
         'subject': subject,
@@ -165,6 +208,11 @@ def lesson_detail(request, class_slug, subject_slug, chapter_slug, lesson_slug):
         'next_lesson': next_lesson,
         'quiz': quiz,
         'quiz_attempted': quiz_attempted,
+        'ep_index': current_idx + 1,
+        'ep_total': len(all_lessons),
+        'chapter_lessons': all_lessons,
+        'chapter_watched_ids': chapter_watched_ids,
+        'related_lessons': related,
     })
 
 

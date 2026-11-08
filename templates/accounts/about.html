@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}About — MathsToons{% endblock %}
+{% block meta_description %}MathsToons turns tricky school maths into short animated lessons, in English and Hinglish. Learn about the channel and how this site works.{% endblock %}
+
+{% block content %}
+
+<!-- ── Intro ── -->
+<section class="hero" style="padding-bottom: var(--space-7)">
+  <div class="container-page">
+    <div class="row g-5 align-items-center">
+      <div class="col-lg-7">
+        <span class="t-hand hero-tagline reveal reveal-1">Where Numbers Come Alive!</span>
+        <h1 class="t-display reveal reveal-2" style="margin: var(--space-3) 0 var(--space-4)">
+          Maths, <span class="marker">drawn</span> so it makes sense.
+        </h1>
+        <p class="t-lead reveal reveal-3" style="max-width: 56ch">
+          Formulas and equations can feel confusing when they're just symbols on a page. MathsToons
+          explains them with colourful motion graphics, animated characters and step-by-step working,
+          so you can see why each step happens.
+        </p>
+        <p class="t-lead reveal reveal-3" style="max-width: 56ch">
+          This site keeps those videos organised by class and chapter, adds a quiz at the end of each
+          chapter, and remembers how far you've got.
+        </p>
+      </div>
+      <div class="col-lg-5 reveal reveal-2">
+        <div style="max-width: 300px; margin-inline: auto" class="mascot-float">
+          {% include 'partials/mascot.html' with uid='about' mood='cheer' label='Bulby, the MathsToons lightbulb' %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── What's different ── -->
+<section class="container-page" style="padding-bottom: var(--space-7)">
+  <h2 class="t-h2" style="margin-bottom: var(--space-4)">How MathsToons teaches</h2>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="step">
+        <span class="step-num" style="--_step: #4db1ff"><i class="bi bi-camera-reels-fill" aria-hidden="true"></i></span>
+        <h3 class="t-h3">One idea per video</h3>
+        <p class="t-meta" style="font-size: 0.95rem; margin: 0">Each lesson covers a single theorem, method or trick, short enough to watch between homework problems.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="step">
+        <span class="step-num" style="--_step: #ff9433"><i class="bi bi-translate" aria-hidden="true"></i></span>
+        <h3 class="t-h3">English + Hinglish</h3>
+        <p class="t-meta" style="font-size: 0.95rem; margin: 0">Lessons come in English, and many in Hinglish too, so the explanation sounds the way you'd talk it through with a friend.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="step">
+        <span class="step-num" style="--_step: #3de3a6"><i class="bi bi-diagram-3-fill" aria-hidden="true"></i></span>
+        <h3 class="t-h3">See it, then prove it</h3>
+        <p class="t-meta" style="font-size: 0.95rem; margin: 0">Diagrams build themselves on screen, then the working follows, so the result makes sense before you have to remember it.</p>
+      </div>
+    </div>
+  </div>
+  {% if lesson_count %}
+  <p class="t-meta" style="margin-top: var(--space-4); font-size: 0.95rem">
+    <i class="bi bi-collection-play text-accent" aria-hidden="true"></i>
+    {{ lesson_count }} lesson{{ lesson_count|pluralize }} across {{ class_count }} class{{ class_count|pluralize:"es" }} so far, with more added as new videos go up.
+  </p>
+  {% endif %}
+</section>
+
+<!-- ── Channel ── -->
+<section class="container-page" style="padding-bottom: var(--space-7)">
+  <div class="banner">
+    <div class="row g-4 align-items-center">
+      <div class="col-md-8">
+        <span class="t-eyebrow" style="color: #ffd43b">On YouTube</span>
+        <h2 class="t-h1" style="margin: var(--space-2) 0 var(--space-3)">New lessons land on the channel first.</h2>
+        <p class="t-lead" style="max-width: 52ch; margin-bottom: var(--space-5)">
+          Every video on this site lives on the MathsToons YouTube channel. Subscribe and turn on
+          notifications to see each new chapter the day it's out.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <a class="btn btn-youtube btn-lg-q" href="{{ YOUTUBE_CHANNEL_URL }}?sub_confirmation=1" target="_blank" rel="noopener">
+            <i class="bi bi-youtube" aria-hidden="true"></i>Subscribe<span class="sr-only"> (opens in a new tab)</span>
+          </a>
+          <a class="btn btn-quiet btn-lg-q" href="{{ YOUTUBE_CHANNEL_URL }}/playlists" target="_blank" rel="noopener">
+            Browse playlists<span class="sr-only"> (opens in a new tab)</span>
+          </a>
+        </div>
+      </div>
+      <div class="col-md-4 d-none d-md-block">
+        <div style="max-width: 190px; margin-inline: auto">
+          {% include 'partials/mascot.html' with uid='about2' %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Contact ── -->
+<section id="contact" class="container-page" style="scroll-margin-top: var(--nav-h)">
+  <h2 class="t-h2" style="margin-bottom: var(--space-4)">Contact</h2>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="panel h-100">
+        <span class="d-grid" style="place-items: center; width: 46px; height: 46px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); font-size: 1.3rem; margin-bottom: var(--space-3)" aria-hidden="true"><i class="bi bi-chat-square-dots-fill"></i></span>
+        <h3 class="t-h3">Stuck on a lesson?</h3>
+        <p class="t-meta" style="font-size: 0.95rem">
+          Ask under the lesson itself. Every lesson page has a <strong style="color: var(--text)">Doubts &amp; comments</strong>
+          section, so the answer stays next to the video for the next student who needs it.
+        </p>
+        {% if user.is_authenticated %}
+        <a class="btn btn-quiet btn-sm-q" href="{% url 'dashboard' %}">Go to your lessons</a>
+        {% else %}
+        <a class="btn btn-accent btn-sm-q" href="{% url 'register' %}">Join free to ask</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="panel h-100">
+        <span class="d-grid" style="place-items: center; width: 46px; height: 46px; border-radius: 14px; background: rgba(255,45,45,0.14); color: #ff2d2d; font-size: 1.3rem; margin-bottom: var(--space-3)" aria-hidden="true"><i class="bi bi-youtube"></i></span>
+        <h3 class="t-h3">Feedback, requests or collaborations</h3>
+        <p class="t-meta" style="font-size: 0.95rem">
+          Want a topic covered, or have an idea? Leave a comment on any video, or reach the team
+          through the channel's About page on YouTube.
+        </p>
+        <a class="btn btn-quiet btn-sm-q" href="{{ YOUTUBE_CHANNEL_URL }}/about" target="_blank" rel="noopener">
+          Channel About page<i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="sr-only"> (opens in a new tab)</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

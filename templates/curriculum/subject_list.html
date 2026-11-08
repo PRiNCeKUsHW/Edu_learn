@@ -1,51 +1,50 @@
 {% extends 'base.html' %}
-{% block title %}{{ klass.name }} — EduLearn{% endblock %}
+{% block title %}{{ klass.name }} — MathsToons{% endblock %}
+{% block meta_description %}{{ klass.name }} maths lessons on MathsToons{% if klass.description %}: {{ klass.description }}{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container-page" style="padding-top: var(--space-6); padding-bottom: var(--space-8)">
+<div class="container-page" style="padding-top: var(--space-5); padding-bottom: var(--space-8)">
 
   <ol class="crumbs">
     <li><a href="{% url 'dashboard' %}">Home</a></li>
     <li class="is-current">{{ klass.name }}</li>
   </ol>
 
-  <!-- ── Header ── -->
-  <header class="reveal reveal-1" style="margin-bottom: var(--space-7)">
-    <div class="d-flex align-items-center gap-2 flex-wrap" style="margin-bottom: 0.4rem">
-      <i class="bi {{ klass.icon }} text-accent" style="font-size: 1.25rem" aria-hidden="true"></i>
+  <header class="page-band reveal reveal-1">
+    <div class="d-flex align-items-center gap-2 flex-wrap" style="margin-bottom: var(--space-2)">
       {% if klass.kind %}
-      <span class="chip" style="border-color: {{ klass.kind.color }}; color: {{ klass.kind.color }}">
+      <span class="chip" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff">
         <i class="bi {{ klass.kind.icon }}" aria-hidden="true"></i>{{ klass.kind.name }}
       </span>
       {% endif %}
     </div>
-    <h1 class="t-h1" style="margin-bottom: 0.4rem">{{ klass.name }}</h1>
+    <h1 class="t-display" style="font-size: clamp(2.2rem, 6vw, 3.6rem); margin-bottom: var(--space-2)">{{ klass.name }}</h1>
     {% if klass.description %}
     <p class="t-lead" style="max-width: 60ch; margin-bottom: 0">{{ klass.description }}</p>
     {% endif %}
   </header>
 
-  <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Choose a subject</div>
+  <h2 class="t-h2" style="margin-bottom: var(--space-4)">Choose a subject</h2>
 
   <div class="row g-3">
     {% for item in subject_data %}
     <div class="col-sm-6 col-lg-4">
-      <a class="card-link h-100 reveal reveal-2" style="padding: var(--space-5)" href="{% url 'chapter_list' klass.slug item.subject.slug %}">
+      <a class="card-link h-100 d-flex flex-column reveal reveal-2" style="padding: var(--space-5)" href="{% url 'chapter_list' klass.slug item.subject.slug %}">
 
         <span class="d-flex align-items-start justify-content-between gap-3">
-          <span>
-            <span class="d-flex align-items-center gap-2" style="font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; letter-spacing: -0.02em">
-              <i class="bi {{ item.subject.icon_class }} text-accent" style="font-size: 1rem" aria-hidden="true"></i>
-              {{ item.subject.name }}
+          <span style="min-width: 0">
+            <span class="d-grid" style="place-items: center; width: 48px; height: 48px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); font-size: 1.4rem; margin-bottom: var(--space-3)">
+              <i class="bi {{ item.subject.icon_class }}" aria-hidden="true"></i>
             </span>
-            <span class="t-meta d-block" style="margin-top: 0.15rem">
+            <span class="d-block" style="font-family: var(--font-display); font-weight: 800; font-size: 1.4rem; line-height: 1.1">{{ item.subject.name }}</span>
+            <span class="t-meta d-block" style="margin-top: 0.2rem">
               {{ item.chapter_count }} chapter{{ item.chapter_count|pluralize }} · {{ item.lesson_count }} lesson{{ item.lesson_count|pluralize }}
             </span>
           </span>
 
           {% if item.lesson_count %}
-          <span class="ring {% if item.percent == 100 %}ring-complete{% endif %}" style="--pct: {{ item.percent }}; --ring-size: 44px; --ring-thick: 4px" role="img" aria-label="{{ item.percent }} percent complete">
-            <span class="ring-label" style="font-size: 0.625rem">{{ item.percent }}%</span>
+          <span class="ring {% if item.percent == 100 %}ring-complete{% endif %}" style="--pct: {{ item.percent }}; --ring-size: 50px; --ring-thick: 5px" role="img" aria-label="{{ item.percent }} percent complete">
+            <span class="ring-label" style="font-size: 0.7rem">{{ item.percent }}%</span>
           </span>
           {% endif %}
         </span>
@@ -54,14 +53,14 @@
         <span class="t-meta d-block truncate-2" style="margin-top: var(--space-3)">{{ item.subject.description }}</span>
         {% endif %}
 
-        {% if item.lesson_count %}
-        <span class="d-block" style="margin-top: var(--space-4)">
-          <span class="meter"><span class="meter-fill {% if item.percent == 100 %}is-success{% endif %}" data-pct="{{ item.percent }}"></span></span>
+        <span class="d-block mt-auto" style="padding-top: var(--space-4)">
+          {% if item.lesson_count %}
+          <span class="meter d-block"><span class="meter-fill d-block {% if item.percent == 100 %}is-success{% endif %}" data-pct="{{ item.percent }}"></span></span>
           <span class="t-meta d-block" style="margin-top: 0.4rem">{{ item.watched_count }} of {{ item.lesson_count }} watched</span>
+          {% else %}
+          <span class="t-meta d-block">No lessons yet</span>
+          {% endif %}
         </span>
-        {% else %}
-        <span class="t-meta d-block" style="margin-top: var(--space-4)">No lessons yet</span>
-        {% endif %}
 
       </a>
     </div>
@@ -69,9 +68,9 @@
     {% empty %}
     <div class="col-12">
       <div class="empty">
-        <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
-        <div style="color: var(--text); font-weight: 600">Nothing here yet</div>
-        <div class="t-meta" style="margin-top: 0.25rem">No subjects have been added for {{ klass.name }}.</div>
+        {% include 'partials/mascot.html' with uid='empty' mood='think' %}
+        <div style="color: var(--text); font-weight: 700">Nothing here yet</div>
+        <div class="t-meta" style="margin-top: 0.25rem">No subjects have been added for {{ klass.name }} yet.</div>
       </div>
     </div>
     {% endfor %}

@@ -74,6 +74,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.brand',
             ],
         },
     },
@@ -175,6 +176,12 @@ RATELIMIT_IP_META_KEY = 'accounts.ratelimit.get_client_ip'
 # still bounding pure automation (a script trying hundreds of signups or
 # password guesses in the same window). Overridable per-deployment without
 # a code change if a given school's numbers warrant it.
+# The MathsToons YouTube channel: every "Subscribe" / "Watch on YouTube" link
+# on the site points here. Overridable so a staging copy can aim elsewhere.
+YOUTUBE_CHANNEL_URL = config(
+    'YOUTUBE_CHANNEL_URL', default='https://www.youtube.com/@MathsToons_03'
+)
+
 LOGIN_RATE_LIMIT = config('LOGIN_RATE_LIMIT', default='20/m')
 REGISTRATION_RATE_LIMIT = config('REGISTRATION_RATE_LIMIT', default='30/h')
 

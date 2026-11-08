@@ -1,48 +1,68 @@
 {% extends 'base.html' %}
-{% block title %}{{ quiz.title }} — EduLearn{% endblock %}
+{% block title %}{{ quiz.title }} — MathsToons{% endblock %}
 
 {% block content %}
-<div class="container-narrow" style="padding-top: var(--space-6); padding-bottom: var(--space-8)">
+<div class="container-narrow" style="padding-top: var(--space-5); padding-bottom: var(--space-8)">
 
   <ol class="crumbs">
     <li><a href="{% url 'dashboard' %}">Home</a></li>
+    <li><a href="{% url 'chapter_list' klass.slug subject.slug %}">{{ subject.name }}</a></li>
     <li class="is-current truncate-1" style="max-width: 26ch">{{ chapter.title }}</li>
   </ol>
 
   <!-- ── Header ── -->
-  <header class="reveal reveal-1" style="margin-bottom: var(--space-6)">
-    <span class="t-eyebrow">Chapter quiz</span>
-    <h1 class="t-h1" style="margin-top: 0.3rem; margin-bottom: 0.4rem">{{ quiz.title }}</h1>
-    {% if quiz.description %}
-    <p class="t-lead" style="margin-bottom: var(--space-4)">{{ quiz.description }}</p>
-    {% endif %}
-    <div class="d-flex gap-2 flex-wrap">
-      <span class="chip"><i class="bi bi-list-ol" aria-hidden="true"></i>{{ questions|length }} question{{ questions|length|pluralize }}</span>
-      <span class="chip"><i class="bi bi-trophy" aria-hidden="true"></i>Pass mark {{ quiz.pass_percentage }}%</span>
+  <header class="page-band reveal reveal-1" style="margin-bottom: var(--space-4)">
+    <div class="d-flex align-items-center justify-content-between gap-3">
+      <div style="min-width: 0">
+        <span class="t-eyebrow" style="color: #ffd43b">Chapter {{ chapter.order }} quiz</span>
+        <h1 class="t-h1" style="margin: 0.2rem 0 0.4rem">{{ quiz.title }}</h1>
+        {% if quiz.description %}
+        <p class="t-lead" style="margin-bottom: var(--space-3)">{{ quiz.description }}</p>
+        {% endif %}
+        <div class="d-flex gap-2 flex-wrap">
+          <span class="chip" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff"><i class="bi bi-list-ol" aria-hidden="true"></i>{{ questions|length }} question{{ questions|length|pluralize }}</span>
+          <span class="chip" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff"><i class="bi bi-trophy" aria-hidden="true"></i>Pass mark {{ quiz.pass_percentage }}%</span>
+        </div>
+      </div>
+      <div class="d-none d-sm-block flex-shrink-0" style="width: 96px">
+        {% include 'partials/mascot.html' with uid='quiz' mood='think' %}
+      </div>
     </div>
   </header>
 
-  <hr class="rule" />
+  {% if questions %}
+  <!-- ── Sticky progress ── -->
+  <div class="quiz-bar" aria-live="polite">
+    <div class="d-flex align-items-center gap-3">
+      <span class="t-meta flex-shrink-0" style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--text)">
+        <span id="answeredCount">0</span>/{{ questions|length }} answered
+      </span>
+      <div class="meter flex-grow-1"><div class="meter-fill" id="answeredMeter" style="width: 0"></div></div>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- ── Questions ── -->
-  <form method="post" id="quizForm">
+  <form method="post" id="quizForm" style="margin-top: var(--space-5)">
     {% csrf_token %}
 
     {% for question in questions %}
-    <fieldset style="border: 0; padding: 0; margin: 0 0 var(--space-7)">
-      <legend style="all: unset; display: block; margin-bottom: var(--space-3)">
+    <fieldset class="question-card" id="q{{ forloop.counter }}" data-question>
+      <legend class="q-legend">
         <span class="d-flex gap-3">
-          <span class="row-index flex-shrink-0" style="margin-top: 0.15rem">{{ forloop.counter }}</span>
-          <span style="font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem; line-height: 1.45">{{ question.text }}</span>
+          <span class="row-index flex-shrink-0" style="margin-top: 0.1rem">{{ forloop.counter }}</span>
+          <span style="font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; line-height: 1.4">{{ question.text }}</span>
         </span>
       </legend>
 
       {% for choice in question.choices.all %}
       <label class="choice" for="choice_{{ choice.id }}">
         <input type="radio" name="question_{{ question.id }}" id="choice_{{ choice.id }}" value="{{ choice.id }}" />
+        <span class="choice-key" aria-hidden="true">{% cycle 'A' 'B' 'C' 'D' 'E' 'F' %}</span>
         <span class="choice-text">{{ choice.text }}</span>
       </label>
       {% endfor %}
+      {% resetcycle %}
     </fieldset>
     {% endfor %}
 
@@ -51,16 +71,56 @@
       <i class="bi bi-check2-square" aria-hidden="true"></i>Submit quiz
     </button>
     <p class="t-meta" style="text-align: center; margin-top: var(--space-3)">
-      You'll see which answers were right straight after submitting.
+      You'll see which answers were right, and why, straight after submitting.
     </p>
     {% else %}
     <div class="empty">
-      <i class="bi bi-patch-question empty-icon" aria-hidden="true"></i>
-      <div style="color: var(--text); font-weight: 600">No questions yet</div>
-      <div class="t-meta" style="margin-top: 0.25rem">This quiz hasn't been set up.</div>
+      {% include 'partials/mascot.html' with uid='empty' mood='think' %}
+      <div style="color: var(--text); font-weight: 700">No questions yet</div>
+      <div class="t-meta" style="margin-top: 0.25rem">This quiz hasn't been set up yet. Check back after the next lesson goes up.</div>
     </div>
     {% endif %}
   </form>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var form = document.getElementById("quizForm");
+    var countEl = document.getElementById("answeredCount");
+    var meter = document.getElementById("answeredMeter");
+    if (!form || !countEl) return;
+    var questions = form.querySelectorAll("[data-question]");
+    var total = questions.length;
+
+    function unanswered() {
+      return Array.prototype.filter.call(questions, function (q) {
+        return !q.querySelector("input:checked");
+      });
+    }
+
+    function update() {
+      var answered = total - unanswered().length;
+      countEl.textContent = answered;
+      meter.style.width = (total ? answered / total * 100 : 0) + "%";
+      meter.classList.toggle("is-success", answered === total);
+    }
+
+    form.addEventListener("change", update);
+
+    // Submitting with gaps is allowed (a blank counts as wrong), but it's
+    // usually a slip, so ask first and jump to the first gap if they cancel.
+    form.addEventListener("submit", function (e) {
+      var gaps = unanswered();
+      if (gaps.length && !window.confirm(gaps.length + " question" + (gaps.length > 1 ? "s are" : " is") + " still unanswered. Submit anyway?")) {
+        e.preventDefault();
+        gaps[0].scrollIntoView({ behavior: "smooth", block: "start" });
+        var first = gaps[0].querySelector("input");
+        if (first) first.focus({ preventScroll: true });
+      }
+    });
+  })();
+</script>
 {% endblock %}

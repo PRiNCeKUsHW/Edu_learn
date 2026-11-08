@@ -1,0 +1,73 @@
+{% comment %}
+The landing page's blueprint board: Varignon's parallelogram, built step by
+step — the quadrilateral, then its four midpoints, then the parallelogram
+they always form. A theorem straight out of the channel's Class 9 Ch 12
+videos, animated the way the channel animates it.
+{% endcomment %}
+<div class="hero-board">
+  <svg class="board-svg" viewBox="0 0 520 400" role="img" aria-labelledby="boardTitle boardDesc">
+    <title id="boardTitle">Varignon's parallelogram</title>
+    <desc id="boardDesc">A quadrilateral ABCD. Joining the midpoints P, Q, R and S of its sides always makes a parallelogram.</desc>
+    <defs>
+      <pattern id="boardGrid" width="26" height="26" patternUnits="userSpaceOnUse">
+        <path d="M26 0H0V26" fill="none" stroke="rgba(120,180,255,0.14)" stroke-width="1"/>
+      </pattern>
+      <clipPath id="boardClip"><rect x="6" y="6" width="508" height="388" rx="26"/></clipPath>
+    </defs>
+
+    <rect x="6" y="6" width="508" height="388" rx="26" fill="#0b1a5c"/>
+    <rect x="6" y="6" width="508" height="388" rx="26" fill="url(#boardGrid)"/>
+    <rect x="6" y="6" width="508" height="388" rx="26" fill="none" stroke="#3aa6ff" stroke-width="3"/>
+
+    <!-- tag, like the pill on the channel's thumbnails -->
+    <g class="pop" style="animation-delay: 80ms">
+      <rect x="26" y="24" width="186" height="30" rx="15" fill="#1d63d6" stroke="#3aa6ff" stroke-width="2"/>
+      <text x="119" y="44" text-anchor="middle" fill="#fff" style="font-family: var(--font-display); font-weight: 800; font-size: 14px; letter-spacing: 1px">CLASS 9 · CH 12</text>
+    </g>
+
+    <!-- floating symbols -->
+    <g style="font-family: var(--font-display); font-weight: 800" clip-path="url(#boardClip)">
+      <text class="pop" x="452" y="70" fill="#ffd43b" font-size="40" style="animation-delay: 300ms">π</text>
+      <text class="pop" x="40" y="118" fill="#3de3a6" font-size="30" style="animation-delay: 420ms">√x</text>
+      <text class="pop" x="250" y="72" fill="#ff9433" font-size="26" style="animation-delay: 540ms">a²+b²=c²</text>
+      <text class="pop" x="470" y="385" fill="#3aa6ff" font-size="34" style="animation-delay: 660ms">÷</text>
+    </g>
+
+    <!-- 1. the quadrilateral -->
+    <path class="neon neon-glow" pathLength="1" d="M80 320 L310 345 L440 170 L170 105 Z"
+          stroke="#4db1ff" stroke-width="4" style="color: #4db1ff; animation-delay: 250ms"/>
+
+    <!-- 2. its four midpoints -->
+    <g fill="#ffd43b">
+      <circle class="pop" cx="195" cy="332.5" r="7" style="animation-delay: 1250ms"/>
+      <circle class="pop" cx="375" cy="257.5" r="7" style="animation-delay: 1350ms"/>
+      <circle class="pop" cx="305" cy="137.5" r="7" style="animation-delay: 1450ms"/>
+      <circle class="pop" cx="125" cy="212.5" r="7" style="animation-delay: 1550ms"/>
+    </g>
+
+    <!-- 3. the parallelogram they always make -->
+    <path class="pop" d="M195 332.5 L375 257.5 L305 137.5 L125 212.5 Z" fill="#ff5cdb" fill-opacity="0.16" style="animation-delay: 2600ms"/>
+    <path class="neon neon-glow" pathLength="1" d="M195 332.5 L375 257.5 L305 137.5 L125 212.5 Z"
+          stroke="#ff5cdb" stroke-width="4" style="color: #ff5cdb; animation-delay: 1700ms"/>
+
+    <!-- labels -->
+    <g fill="#ffffff" style="font-family: var(--font-display); font-weight: 800; font-size: 22px">
+      <text class="pop" x="56" y="340" style="animation-delay: 500ms">A</text>
+      <text class="pop" x="312" y="378" style="animation-delay: 600ms">B</text>
+      <text class="pop" x="450" y="166" style="animation-delay: 700ms">C</text>
+      <text class="pop" x="150" y="96" style="animation-delay: 800ms">D</text>
+    </g>
+    <g fill="#ffd43b" style="font-family: var(--font-display); font-weight: 800; font-size: 19px">
+      <text class="pop" x="186" y="364" style="animation-delay: 1300ms">P</text>
+      <text class="pop" x="388" y="270" style="animation-delay: 1400ms">Q</text>
+      <text class="pop" x="304" y="124" style="animation-delay: 1500ms">R</text>
+      <text class="pop" x="100" y="208" style="animation-delay: 1600ms">S</text>
+    </g>
+
+    <text class="pop" x="34" y="380" fill="#ffd43b" style="font-family: var(--font-hand); font-size: 22px; animation-delay: 2900ms">PQRS is always a parallelogram!</text>
+  </svg>
+
+  <div class="board-mascot mascot-float">
+    {% include 'partials/mascot.html' with uid='hero' mood='happy' %}
+  </div>
+</div>

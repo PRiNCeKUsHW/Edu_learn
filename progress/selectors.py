@@ -11,7 +11,8 @@ from django.db.models import Avg, Count, F, FloatField, Max, Q, Sum
 from django.db.models.expressions import ExpressionWrapper
 from django.db.models.functions import TruncDate
 
-from curriculum.models import Class, Lesson
+from curriculum.models import Chapter, Class, Lesson
+from curriculum.selectors import attach_positions, latest_lessons
 from quizzes.models import QuizAttempt
 
 from .models import LessonProgress
@@ -123,6 +124,86 @@ def quiz_stats(user):
         'avg_percent': round(scored['avg']) if scored['avg'] is not None else 0,
         'best_percent': round(scored['best']) if scored['best'] is not None else 0,
     }
+
+
+def recently_viewed(user, limit=6):
+    """The lessons this user opened most recently, newest first.
+
+    Returns LessonProgress rows (so the template also knows which ones are
+    watched), each with its lesson's episode position attached.
+    """
+    rows = list(
+        LessonProgress.objects
+        .filter(
+            user=user,
+            last_viewed_at__isnull=False,
+            lesson__chapter__subject__is_active=True,
+            lesson__chapter__subject__klass__is_active=True,
+        )
+        .select_related('lesson__chapter__subject__klass')
+        .order_by('-last_viewed_at')[:limit]
+    )
+    attach_positions([row.lesson for row in rows])
+    return rows
+
+
+def recommended_lessons(user, limit=6, exclude_ids=()):
+    """"Up next": the next unwatched lessons in the chapters this user has
+    been working through, most recently touched chapter first, at most two
+    per chapter so one long chapter can't fill the whole rail.
+
+    A student with no history yet -- or who has finished everything they
+    started -- is topped up with the newest lessons on the site instead, so
+    the rail is never empty while there is content to offer.
+    """
+    exclude_ids = set(exclude_ids)
+    touched = (
+        LessonProgress.objects
+        .filter(user=user)
+        .exclude(last_viewed_at__isnull=True, watched_at__isnull=True)
+        .values_list('lesson__chapter_id', 'last_viewed_at', 'watched_at')
+    )
+    recency = {}
+    for chapter_id, viewed, watched in touched:
+        stamp = max(t for t in (viewed, watched) if t is not None)
+        if chapter_id not in recency or stamp > recency[chapter_id]:
+            recency[chapter_id] = stamp
+
+    watched_ids = set(
+        LessonProgress.objects.filter(user=user, watched=True).values_list('lesson_id', flat=True)
+    )
+
+    chapters = {
+        chapter.id: chapter
+        for chapter in Chapter.objects.filter(
+            id__in=recency,
+            subject__is_active=True,
+            subject__klass__is_active=True,
+        ).select_related('subject__klass').prefetch_related('lessons')
+    }
+
+    picks = []
+    for chapter_id in sorted(chapters, key=recency.get, reverse=True):
+        chapter = chapters[chapter_id]
+        taken = 0
+        for lesson in chapter.lessons.all():
+            if lesson.id in watched_ids or lesson.id in exclude_ids:
+                continue
+            # Reuse the chapter already carrying subject/class, so building
+            # the lesson URL in the template doesn't query the chain again.
+            lesson.chapter = chapter
+            picks.append(lesson)
+            taken += 1
+            if taken == 2 or len(picks) == limit:
+                break
+        if len(picks) == limit:
+            break
+
+    if len(picks) < limit:
+        seen = exclude_ids | watched_ids | {lesson.id for lesson in picks}
+        picks += latest_lessons(limit - len(picks), exclude_ids=seen)
+
+    return attach_positions(picks)
 
 
 def study_minutes(user):

@@ -1,0 +1,26 @@
+{% comment %}
+One lesson as a thumbnail card. The YouTube thumbnail is the artwork — the
+channel already designs every one of them.
+
+  lesson   Lesson with chapter__subject__klass loaded
+  watched  truthy to show the green "Watched" badge
+  locked   truthy for a logged-out visitor: the link goes to sign-up instead
+{% endcomment %}
+{% with chapter=lesson.chapter %}
+<a class="lesson-card" href="{% if locked %}{% url 'register' %}{% else %}{% url 'lesson_detail' chapter.subject.klass.slug chapter.subject.slug chapter.slug lesson.slug %}{% endif %}">
+  <span class="thumb">
+    <img src="https://i.ytimg.com/vi/{{ lesson.youtube_video_id }}/hqdefault.jpg" alt="" loading="lazy" width="480" height="360" />
+    <span class="thumb-play" aria-hidden="true"><span><i class="bi bi-play-fill"></i></span></span>
+    {% if watched %}
+    <span class="thumb-badge is-watched"><i class="bi bi-check-lg" aria-hidden="true"></i>Watched</span>
+    {% elif lesson.duration_minutes %}
+    <span class="thumb-badge"><i class="bi bi-clock" aria-hidden="true"></i>{{ lesson.duration_minutes }} min</span>
+    {% endif %}
+  </span>
+  <span class="lesson-card-body">
+    {% include 'partials/ep_strip.html' %}
+    <span class="lesson-card-title truncate-2">{{ lesson.title }}</span>
+    <span class="t-meta truncate-1">{{ chapter.title }}</span>
+  </span>
+</a>
+{% endwith %}

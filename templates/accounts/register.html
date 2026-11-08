@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
-{% block title %}Sign up — EduLearn{% endblock %}
+{% block title %}Join free — MathsToons{% endblock %}
 
 {% block content %}
-<div class="container-narrow" style="max-width: 420px; padding-top: var(--space-8); padding-bottom: var(--space-8)">
+<div class="container-narrow" style="max-width: 440px; padding-top: var(--space-7); padding-bottom: var(--space-8)">
 
-  <header style="text-align: center; margin-bottom: var(--space-6)">
-    <h1 class="t-h1" style="font-size: 1.75rem; margin-bottom: 0.35rem">Create your account</h1>
-    <p class="t-meta" style="margin-bottom: 0">Free to join. Start learning in a minute.</p>
+  <header style="text-align: center; margin-bottom: var(--space-5)">
+    <div style="width: 96px; margin: 0 auto var(--space-3)" class="mascot-float">{% include 'partials/mascot.html' with uid='auth' mood='cheer' %}</div>
+    <h1 class="t-h1" style="font-size: 2rem; margin-bottom: 0.35rem">Join MathsToons</h1>
+    <p class="t-meta" style="margin-bottom: 0; font-size: 0.95rem">Free. Save your progress, take the chapter quizzes, and ask doubts.</p>
   </header>
 
   <div class="panel-lg reveal reveal-1">

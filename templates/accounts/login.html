@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
-{% block title %}Log in — EduLearn{% endblock %}
+{% block title %}Log in — MathsToons{% endblock %}
 
 {% block content %}
-<div class="container-narrow" style="max-width: 420px; padding-top: var(--space-8); padding-bottom: var(--space-8)">
+<div class="container-narrow" style="max-width: 440px; padding-top: var(--space-7); padding-bottom: var(--space-8)">
 
-  <header style="text-align: center; margin-bottom: var(--space-6)">
-    <h1 class="t-h1" style="font-size: 1.75rem; margin-bottom: 0.35rem">Welcome back</h1>
-    <p class="t-meta" style="margin-bottom: 0">Log in to continue where you left off.</p>
+  <header style="text-align: center; margin-bottom: var(--space-5)">
+    <div style="width: 86px; margin: 0 auto var(--space-3)" class="mascot-float">{% include 'partials/mascot.html' with uid='auth' %}</div>
+    <h1 class="t-h1" style="font-size: 2rem; margin-bottom: 0.35rem">Welcome back!</h1>
+    <p class="t-meta" style="margin-bottom: 0; font-size: 0.95rem">Log in to pick up where you left off.</p>
   </header>
 
   <div class="panel-lg reveal reveal-1">

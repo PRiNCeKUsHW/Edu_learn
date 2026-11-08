@@ -1,82 +1,111 @@
 {% extends 'base.html' %}
-{% block title %}{{ lesson.title }} — EduLearn{% endblock %}
+{% block title %}{{ lesson.title }} — {{ klass.name }} {{ subject.name }} — MathsToons{% endblock %}
+{% block meta_description %}{% if lesson.description %}{{ lesson.description|truncatechars:155 }}{% else %}{{ lesson.title }}: an animated {{ klass.name }} {{ subject.name }} lesson from MathsToons, chapter {{ chapter.order }}, {{ chapter.title }}.{% endif %}{% endblock %}
+{% block og_image %}<meta property="og:image" content="https://i.ytimg.com/vi/{{ lesson.youtube_video_id }}/hqdefault.jpg" />{% endblock %}
 
 {% block content %}
-<div class="container-page" style="padding-top: var(--space-5); padding-bottom: var(--space-8)">
+<div class="container-page" style="padding-top: var(--space-4); padding-bottom: var(--space-8)">
+
+  <ol class="crumbs">
+    <li><a href="{% url 'dashboard' %}">Home</a></li>
+    <li><a href="{% url 'subject_list' klass.slug %}">{{ klass.name }}</a></li>
+    <li><a href="{% url 'chapter_list' klass.slug subject.slug %}">{{ subject.name }}</a></li>
+    <li class="is-current truncate-1" style="max-width: 26ch">{{ chapter.title }}</li>
+  </ol>
+
   <div class="row g-4">
 
     <!-- ════════════════ MAIN ════════════════ -->
     <div class="col-lg-8">
 
-      <ol class="crumbs">
-        <li><a href="{% url 'dashboard' %}">Home</a></li>
-        <li><a href="{% url 'subject_list' klass.slug %}">{{ klass.name }}</a></li>
-        <li><a href="{% url 'chapter_list' klass.slug subject.slug %}">{{ subject.name }}</a></li>
-        <li class="is-current truncate-1" style="max-width: 22ch">{{ chapter.title }}</li>
-      </ol>
-
       <!-- ── Player ── -->
-      <div class="video-wrapper" style="margin-bottom: var(--space-5)">
-        <iframe src="{{ lesson.youtube_embed_url }}" title="{{ lesson.title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      <div class="player-frame" style="margin-bottom: var(--space-4)">
+        <div class="video-wrapper">
+          <iframe src="https://www.youtube-nocookie.com/embed/{{ lesson.youtube_video_id }}?rel=0&amp;playsinline=1&amp;modestbranding=1"
+                  title="{{ lesson.title }} — video lesson"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
       </div>
 
-      <!-- ── Title + mark watched ── -->
-      <div class="d-flex align-items-start justify-content-between gap-3" style="margin-bottom: var(--space-4)">
-        <div style="min-width: 0">
-          <h1 class="t-h2" style="margin-bottom: 0.35rem">{{ lesson.title }}</h1>
-          <div class="t-meta d-flex align-items-center gap-2 flex-wrap">
-            <span><i class="bi bi-collection-play" aria-hidden="true"></i> {{ chapter.title }}</span>
-            {% if lesson.duration_minutes %}
-            <span aria-hidden="true">·</span>
-            <span><i class="bi bi-clock" aria-hidden="true"></i> {{ lesson.duration_minutes }} min</span>
-            {% endif %}
-          </div>
-        </div>
+      <!-- ── Title + actions ── -->
+      <div style="margin-bottom: var(--space-3)">
+        {% include 'partials/ep_strip.html' with index=ep_index total=ep_total size='lg' %}
+      </div>
+      <h1 class="t-h1" style="font-size: clamp(1.6rem, 3.6vw, 2.3rem); margin-bottom: var(--space-2)">{{ lesson.title }}</h1>
+      <div class="t-meta d-flex align-items-center gap-2 flex-wrap" style="margin-bottom: var(--space-4); font-size: 0.9rem">
+        <span><i class="bi bi-collection-play" aria-hidden="true"></i> {{ chapter.title }}</span>
+        {% if lesson.duration_minutes %}
+        <span aria-hidden="true">·</span>
+        <span><i class="bi bi-clock" aria-hidden="true"></i> {{ lesson.duration_minutes }} min</span>
+        {% endif %}
+      </div>
 
-        <button id="watchBtn" type="button" data-lesson-id="{{ lesson.id }}" class="btn {% if progress.watched %}btn-soft{% else %}btn-quiet{% endif %} flex-shrink-0" aria-pressed="{% if progress.watched %}true{% else %}false{% endif %}">
+      <div class="d-flex flex-wrap gap-2" style="margin-bottom: var(--space-5)">
+        <button id="watchBtn" type="button" data-lesson-id="{{ lesson.id }}" class="btn {% if progress.watched %}btn-soft{% else %}btn-quiet{% endif %}" aria-pressed="{% if progress.watched %}true{% else %}false{% endif %}">
           <i id="watchIcon" class="bi {% if progress.watched %}bi-check-circle-fill{% else %}bi-circle{% endif %}" aria-hidden="true"></i>
           <span id="watchText">{% if progress.watched %}Watched{% else %}Mark watched{% endif %}</span>
         </button>
+        <a class="btn btn-ghost" href="https://www.youtube.com/watch?v={{ lesson.youtube_video_id }}" target="_blank" rel="noopener">
+          <i class="bi bi-youtube" style="color: #ff2d2d" aria-hidden="true"></i>Open on YouTube<span class="sr-only"> (opens in a new tab)</span>
+        </a>
       </div>
 
       {% if lesson.description %}
-      <p class="text-secondary-ink" style="margin-bottom: var(--space-5)">{{ lesson.description }}</p>
+      <div class="panel" style="margin-bottom: var(--space-5)">
+        <div class="t-eyebrow" style="margin-bottom: 0.4rem">About this lesson</div>
+        <p style="margin-bottom: 0; white-space: pre-line">{{ lesson.description }}</p>
+      </div>
       {% endif %}
 
       <!-- ── Prev / next ── -->
-      <nav class="d-flex justify-content-between gap-2" style="margin-bottom: var(--space-8)" aria-label="Lesson navigation">
-        {% if prev_lesson %}
-        <a class="btn btn-quiet" style="max-width: 48%" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug prev_lesson.slug %}">
-          <i class="bi bi-arrow-left flex-shrink-0" aria-hidden="true"></i>
-          <span class="truncate-1">{{ prev_lesson.title }}</span>
-        </a>
-        {% else %}
-        <span></span>
-        {% endif %}
-
-        {% if next_lesson %}
-        <a class="btn btn-accent" style="max-width: 48%" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug next_lesson.slug %}">
-          <span class="truncate-1">{{ next_lesson.title }}</span>
-          <i class="bi bi-arrow-right flex-shrink-0" aria-hidden="true"></i>
-        </a>
-        {% endif %}
+      <nav class="row g-2" style="margin-bottom: var(--space-7)" aria-label="Lesson navigation">
+        <div class="col-6">
+          {% if prev_lesson %}
+          <a class="card-link h-100 d-flex align-items-center gap-2" style="padding: var(--space-3) var(--space-4)" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug prev_lesson.slug %}" rel="prev">
+            <i class="bi bi-arrow-left-circle-fill text-accent flex-shrink-0" style="font-size: 1.5rem" aria-hidden="true"></i>
+            <span style="min-width: 0">
+              <span class="t-meta d-block">Previous</span>
+              <span class="row-title d-block truncate-1">{{ prev_lesson.title }}</span>
+            </span>
+          </a>
+          {% endif %}
+        </div>
+        <div class="col-6">
+          {% if next_lesson %}
+          <a class="card-link h-100 d-flex align-items-center justify-content-end gap-2 text-end" style="padding: var(--space-3) var(--space-4); border-color: var(--toon)" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug next_lesson.slug %}" rel="next">
+            <span style="min-width: 0">
+              <span class="t-meta d-block" style="color: var(--toon)">Next lesson</span>
+              <span class="row-title d-block truncate-1">{{ next_lesson.title }}</span>
+            </span>
+            <i class="bi bi-arrow-right-circle-fill text-toon flex-shrink-0" style="font-size: 1.5rem" aria-hidden="true"></i>
+          </a>
+          {% elif quiz %}
+          <a class="card-link h-100 d-flex align-items-center justify-content-end gap-2 text-end" style="padding: var(--space-3) var(--space-4); border-color: var(--sun)" href="#chapterQuiz">
+            <span style="min-width: 0">
+              <span class="t-meta d-block" style="color: var(--sun)">End of chapter</span>
+              <span class="row-title d-block truncate-1">Test yourself</span>
+            </span>
+            <i class="bi bi-trophy-fill text-sun flex-shrink-0" style="font-size: 1.4rem" aria-hidden="true"></i>
+          </a>
+          {% endif %}
+        </div>
       </nav>
 
       <!-- ════ COMMENTS ════ -->
       <section aria-labelledby="commentsHeading">
-        <h2 id="commentsHeading" class="t-h2" style="font-size: 1.125rem; margin-bottom: var(--space-4)">
+        <h2 id="commentsHeading" class="t-h2" style="margin-bottom: var(--space-4)">
           Doubts &amp; comments
-          <span class="chip" style="margin-left: 0.35rem">{{ comments|length }}</span>
+          <span class="chip" style="margin-left: 0.35rem; vertical-align: middle">{{ comments|length }}</span>
         </h2>
 
-        <!-- Post -->
         <form method="post" style="margin-bottom: var(--space-6)">
           {% csrf_token %}
           <div class="d-flex gap-3">
             <span class="avatar" aria-hidden="true">{{ user.first_name|default:user.username|slice:":1"|upper }}</span>
             <div class="flex-grow-1">
               <label class="sr-only" for="newComment">Your comment</label>
-              <textarea class="input" id="newComment" name="comment_body" rows="3" placeholder="Ask a doubt or leave a comment…" required></textarea>
+              <textarea class="input" id="newComment" name="comment_body" rows="3" placeholder="Stuck on a step? Ask your doubt here…" required></textarea>
               <div class="d-flex justify-content-end" style="margin-top: var(--space-2)">
                 <button class="btn btn-accent btn-sm-q" type="submit">
                   <i class="bi bi-send" aria-hidden="true"></i>Post
@@ -86,41 +115,38 @@
           </div>
         </form>
 
-        <!-- Threads -->
         {% for comment in comments %}
         <article class="d-flex gap-3" style="margin-bottom: var(--space-5)">
           <span class="avatar" aria-hidden="true">{{ comment.user.first_name|default:comment.user.username|slice:":1"|upper }}</span>
 
           <div class="flex-grow-1" style="min-width: 0">
-            <div class="panel" style="padding: var(--space-3) var(--space-4); background: var(--bg-subtle)">
+            <div class="panel" style="padding: var(--space-3) var(--space-4)">
               <div class="d-flex align-items-baseline gap-2 flex-wrap" style="margin-bottom: 0.2rem">
-                <span style="font-weight: 600; font-size: 0.875rem">{{ comment.user.get_full_name|default:comment.user.username }}</span>
+                <span style="font-weight: 700; font-size: 0.9rem">{{ comment.user.get_full_name|default:comment.user.username }}</span>
                 <span class="t-meta">{{ comment.created_at|timesince }} ago</span>
               </div>
-              <p style="margin-bottom: 0; font-size: 0.9375rem">{{ comment.body }}</p>
+              <p style="margin-bottom: 0; font-size: 0.95rem">{{ comment.body }}</p>
             </div>
 
-            <!-- Replies -->
             {% for reply in comment.replies.all %}
             <div class="d-flex gap-2" style="margin-top: var(--space-3); margin-left: var(--space-4)">
               <span class="avatar avatar-sm" aria-hidden="true">{{ reply.user.first_name|default:reply.user.username|slice:":1"|upper }}</span>
-              <div class="panel flex-grow-1" style="padding: var(--space-2) var(--space-3); min-width: 0">
+              <div class="panel flex-grow-1" style="padding: var(--space-2) var(--space-3); min-width: 0; background: var(--bg-subtle)">
                 <div class="d-flex align-items-baseline gap-2 flex-wrap" style="margin-bottom: 0.15rem">
-                  <span style="font-weight: 600; font-size: 0.8125rem">{{ reply.user.get_full_name|default:reply.user.username }}</span>
+                  <span style="font-weight: 700; font-size: 0.85rem">{{ reply.user.get_full_name|default:reply.user.username }}</span>
                   <span class="t-meta">{{ reply.created_at|timesince }} ago</span>
                 </div>
-                <p style="margin-bottom: 0; font-size: 0.875rem">{{ reply.body }}</p>
+                <p style="margin-bottom: 0; font-size: 0.9rem">{{ reply.body }}</p>
               </div>
             </div>
             {% endfor %}
 
-            <!-- Reply form -->
             <form method="post" style="margin-top: var(--space-3); margin-left: var(--space-4)">
               {% csrf_token %}
               <input type="hidden" name="parent_id" value="{{ comment.id }}" />
               <div class="d-flex gap-2">
                 <label class="sr-only" for="reply{{ comment.id }}">Reply to {{ comment.user.get_full_name|default:comment.user.username }}</label>
-                <input class="input" id="reply{{ comment.id }}" type="text" name="comment_body" placeholder="Write a reply…" required style="min-height: 38px; font-size: 0.875rem" />
+                <input class="input" id="reply{{ comment.id }}" type="text" name="comment_body" placeholder="Write a reply…" required style="min-height: 40px; font-size: 0.9rem" />
                 <button class="btn btn-quiet btn-sm-q flex-shrink-0" type="submit">Reply</button>
               </div>
             </form>
@@ -129,9 +155,9 @@
 
         {% empty %}
         <div class="empty">
-          <i class="bi bi-chat-square-dots empty-icon" aria-hidden="true"></i>
-          <div style="color: var(--text); font-weight: 600">No comments yet</div>
-          <div class="t-meta" style="margin-top: 0.25rem">Be the first to ask a doubt.</div>
+          {% include 'partials/mascot.html' with uid='empty' mood='think' %}
+          <div style="color: var(--text); font-weight: 700">No doubts yet</div>
+          <div class="t-meta" style="margin-top: 0.25rem">If a step didn't make sense, ask. Someone else is probably wondering too.</div>
         </div>
         {% endfor %}
       </section>
@@ -139,12 +165,42 @@
     </div>
 
     <!-- ════════════════ SIDEBAR ════════════════ -->
-    <div class="col-lg-4">
+    <aside class="col-lg-4" aria-label="Chapter">
+
+      <!-- Playlist -->
+      <div class="panel" style="padding: var(--space-4); margin-bottom: var(--space-4)">
+        <div class="d-flex justify-content-between align-items-baseline" style="margin-bottom: var(--space-2)">
+          <span class="t-eyebrow">In this chapter</span>
+          <span class="t-meta">{{ chapter_watched_ids|length }}/{{ ep_total }} watched</span>
+        </div>
+        <div class="d-block" style="font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; margin-bottom: var(--space-3)">{{ chapter.title }}</div>
+        <nav aria-label="Lessons in {{ chapter.title }}" style="max-height: 460px; overflow-y: auto; margin-inline: calc(var(--space-2) * -1)">
+          {% for l in chapter_lessons %}
+          <a class="row-link {% if l.id == lesson.id %}is-current{% endif %}" style="padding: var(--space-2); min-height: 0" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug l.slug %}" {% if l.id == lesson.id %}aria-current="page"{% endif %}>
+            <span class="position-relative flex-shrink-0">
+              <img class="row-thumb" style="width: 92px" src="https://i.ytimg.com/vi/{{ l.youtube_video_id }}/mqdefault.jpg" alt="" loading="lazy" width="320" height="180" />
+              {% if l.id == lesson.id %}
+              <span class="position-absolute top-50 start-50 translate-middle d-grid" style="place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--toon); color: var(--on-toon)" aria-hidden="true"><i class="bi bi-play-fill"></i></span>
+              {% endif %}
+            </span>
+            <span class="flex-grow-1" style="min-width: 0">
+              <span class="t-meta d-block" style="font-family: var(--font-display); font-weight: 700">{{ forloop.counter }}/{{ ep_total }}{% if l.id in chapter_watched_ids %} · <span class="text-success-ink">watched</span>{% endif %}</span>
+              <span class="row-title d-block truncate-2" style="font-size: 0.88rem">{{ l.title }}</span>
+            </span>
+          </a>
+          {% endfor %}
+        </nav>
+      </div>
 
       {% if quiz %}
-      <div class="panel" style="margin-bottom: var(--space-4)">
-        <div class="t-eyebrow" style="margin-bottom: 0.4rem">Chapter quiz</div>
-        <div style="font-family: var(--font-display); font-weight: 600; margin-bottom: 0.2rem">{{ quiz.title }}</div>
+      <div id="chapterQuiz" class="panel" style="margin-bottom: var(--space-4); border-color: var(--sun); scroll-margin-top: calc(var(--nav-h) + 16px)">
+        <div class="d-flex align-items-center gap-3" style="margin-bottom: var(--space-3)">
+          <span class="d-grid flex-shrink-0" style="place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--sun); color: #0b1640; font-size: 1.25rem" aria-hidden="true"><i class="bi bi-trophy-fill"></i></span>
+          <div style="min-width: 0">
+            <div class="t-eyebrow">Chapter quiz</div>
+            <div class="truncate-1" style="font-family: var(--font-display); font-weight: 800; font-size: 1.1rem">{{ quiz.title }}</div>
+          </div>
+        </div>
         <p class="t-meta" style="margin-bottom: var(--space-4)">
           {{ quiz.total_questions }} question{{ quiz.total_questions|pluralize }} · pass mark {{ quiz.pass_percentage }}%
         </p>
@@ -167,10 +223,10 @@
 
       {% if resources %}
       <div class="panel" style="margin-bottom: var(--space-4)">
-        <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Notes &amp; resources</div>
+        <div class="t-eyebrow" style="margin-bottom: var(--space-2)">Notes &amp; downloads</div>
         {% for resource in resources %}
-        <a class="row-link" style="padding: var(--space-2) 0; min-height: 40px" href="{{ resource.file.url }}" target="_blank" rel="noopener">
-          <i class="bi bi-file-earmark-arrow-down text-accent flex-shrink-0" aria-hidden="true"></i>
+        <a class="row-link" style="padding: var(--space-2) 0; min-height: 44px" href="{{ resource.file.url }}" target="_blank" rel="noopener">
+          <span class="d-grid flex-shrink-0" style="place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent-soft); color: var(--accent)" aria-hidden="true"><i class="bi bi-file-earmark-arrow-down"></i></span>
           <span class="row-title flex-grow-1 truncate-1">{{ resource.title }}</span>
           <i class="bi bi-box-arrow-up-right t-meta flex-shrink-0" aria-hidden="true"></i>
           <span class="sr-only">(opens in a new tab)</span>
@@ -179,23 +235,24 @@
       </div>
       {% endif %}
 
-      <!-- Lesson list -->
-      <div class="panel">
-        <div class="t-eyebrow" style="margin-bottom: var(--space-3)">In this chapter</div>
-        <nav aria-label="Chapter lessons">
-          {% for l in chapter.lessons.all %}
-          <a class="row-link {% if l.id == lesson.id %}is-current{% endif %}" style="padding: var(--space-2) var(--space-3); min-height: 44px" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug l.slug %}" {% if l.id == lesson.id %}aria-current="page"{% endif %}>
-            <span class="row-index flex-shrink-0">{{ forloop.counter }}</span>
-            <span class="row-title flex-grow-1">{{ l.title }}</span>
-            {% if l.id == lesson.id %}
-            <i class="bi bi-play-fill text-accent flex-shrink-0" aria-hidden="true"></i>
-            {% endif %}
+      {% if related_lessons %}
+      <div class="panel" style="padding: var(--space-4)">
+        <div class="t-eyebrow" style="margin-bottom: var(--space-3)">More in {{ subject.name }}</div>
+        <div class="d-flex flex-column gap-3">
+          {% for rel in related_lessons %}
+          <a class="d-flex gap-3 text-decoration-none" style="color: inherit" href="{% url 'lesson_detail' klass.slug subject.slug rel.chapter.slug rel.slug %}">
+            <img class="row-thumb" src="https://i.ytimg.com/vi/{{ rel.youtube_video_id }}/mqdefault.jpg" alt="" loading="lazy" width="320" height="180" />
+            <span style="min-width: 0">
+              <span class="t-meta d-block" style="font-family: var(--font-display); font-weight: 700">Ch {{ rel.chapter.order }} · {{ rel.ep_index }}/{{ rel.ep_total }}</span>
+              <span class="row-title d-block truncate-2" style="font-size: 0.88rem">{{ rel.title }}</span>
+            </span>
           </a>
           {% endfor %}
-        </nav>
+        </div>
       </div>
+      {% endif %}
 
-    </div>
+    </aside>
 
   </div>
 </div>

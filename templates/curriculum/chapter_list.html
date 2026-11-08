@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
-{% block title %}{{ subject.name }} — {{ klass.name }} — EduLearn{% endblock %}
+{% block title %}{{ subject.name }} — {{ klass.name }} — MathsToons{% endblock %}
+{% block meta_description %}{{ klass.name }} {{ subject.name }} on MathsToons: {{ chapters|length }} chapter{{ chapters|length|pluralize }} of animated video lessons with chapter quizzes.{% endblock %}
 
 {% block content %}
-<div class="container-page" style="padding-top: var(--space-6); padding-bottom: var(--space-8)">
+<div class="container-page" style="padding-top: var(--space-5); padding-bottom: var(--space-8)">
 
   <ol class="crumbs">
     <li><a href="{% url 'dashboard' %}">Home</a></li>
@@ -11,93 +12,171 @@
   </ol>
 
   <!-- ── Header ── -->
-  <header class="reveal reveal-1" style="margin-bottom: var(--space-6)">
-    <span class="t-eyebrow">{{ klass.name }}</span>
-    <h1 class="t-h1" style="margin-top: 0.3rem; margin-bottom: 0.4rem">{{ subject.name }}</h1>
-    <p class="t-meta" style="margin-bottom: 0">{{ chapters|length }} chapter{{ chapters|length|pluralize }}</p>
+  <header class="page-band reveal reveal-1">
+    <div class="row g-4 align-items-end">
+      <div class="col-md-8">
+        <span class="t-eyebrow" style="color: #ffd43b">{{ klass.name }}</span>
+        <h1 class="t-display" style="font-size: clamp(2.1rem, 5.5vw, 3.4rem); margin: 0.2rem 0 0.4rem">{{ subject.name }}</h1>
+        <p class="t-meta" style="margin-bottom: 0; font-size: 0.95rem">
+          {{ chapters|length }} chapter{{ chapters|length|pluralize }} · {{ total_lessons }} lesson{{ total_lessons|pluralize }}
+        </p>
+      </div>
+      {% if total_lessons %}
+      <div class="col-md-4">
+        <div class="d-flex justify-content-between t-meta" style="margin-bottom: 0.4rem; font-size: 0.9rem">
+          <span>Your progress</span><span style="color: #fff; font-weight: 700">{{ watched_lessons }}/{{ total_lessons }}</span>
+        </div>
+        <div class="meter"><div class="meter-fill {% if subject_percent == 100 %}is-success{% endif %}" data-pct="{{ subject_percent }}"></div></div>
+      </div>
+      {% endif %}
+    </div>
   </header>
 
   {% if chapters %}
-  <div class="accordion reveal reveal-2" id="chaptersAccordion">
+  <!-- ── Filter ── -->
+  {% if total_lessons %}
+  <div class="d-flex flex-wrap align-items-center gap-2" style="margin-bottom: var(--space-4)">
+    <div class="nav-search flex-grow-1" style="max-width: 420px; margin: 0">
+      <label class="sr-only" for="lessonFilter">Filter lessons in {{ subject.name }}</label>
+      <i class="bi bi-funnel" aria-hidden="true"></i>
+      <input class="input" id="lessonFilter" type="search" placeholder="Filter lessons…" autocomplete="off" style="width: 100%" />
+    </div>
+    <button class="filter-chip" type="button" id="hideWatched" aria-pressed="false">
+      <i class="bi bi-eye-slash" aria-hidden="true"></i>Hide watched
+    </button>
+  </div>
+  <p class="t-meta" id="filterEmpty" hidden role="status">No lessons match that filter.</p>
+  {% endif %}
+
+  <!-- ── Chapters as playlists ── -->
+  <div class="reveal reveal-2">
     {% for chapter in chapters %}
-    <div class="accordion-item" style="margin-bottom: var(--space-3); border-radius: var(--radius-lg); overflow: hidden">
+    <details class="playlist {% if chapter.lesson_list and chapter.percent == 100 %}is-complete{% endif %}" data-chapter {% if forloop.first %}open{% endif %}>
+      <summary>
+        <span class="playlist-num" aria-hidden="true">{% if chapter.lesson_list and chapter.percent == 100 %}<i class="bi bi-check-lg"></i>{% else %}{{ chapter.order }}{% endif %}</span>
+        <span class="flex-grow-1" style="min-width: 0">
+          <span class="d-block t-meta" style="font-family: var(--font-display); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase">Chapter {{ chapter.order }}</span>
+          <span class="d-block" style="font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; line-height: 1.15">{{ chapter.title }}</span>
+          <span class="t-meta d-block">
+            {{ chapter.lesson_list|length }} lesson{{ chapter.lesson_list|length|pluralize }}{% if chapter.lesson_list %} · {{ chapter.watched_count }} watched{% endif %}{% if chapter.quiz %} · quiz{% endif %}
+          </span>
+        </span>
+        {% if chapter.lesson_list %}
+        <span class="ring d-none d-sm-grid {% if chapter.percent == 100 %}ring-complete{% endif %}" style="--pct: {{ chapter.percent }}; --ring-size: 46px; --ring-thick: 5px" role="img" aria-label="{{ chapter.percent }} percent watched">
+          <span class="ring-label" style="font-size: 0.68rem">{{ chapter.percent }}%</span>
+        </span>
+        {% endif %}
+        <i class="bi bi-chevron-down text-muted-ink" aria-hidden="true"></i>
+      </summary>
 
-      <h2 class="accordion-header">
-        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#chapter{{ chapter.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="chapter{{ chapter.id }}">
-          <span class="row-index">{{ chapter.order }}</span>
-          <span class="flex-grow-1 text-start">{{ chapter.title }}</span>
-          <span class="chip">{{ chapter.lessons.all|length }} lesson{{ chapter.lessons.all|length|pluralize }}</span>
-        </button>
-      </h2>
+      <div class="playlist-body">
+        {% if chapter.description %}
+        <p class="t-meta" style="padding: var(--space-3) var(--space-5) 0; margin: 0; font-size: 0.9rem">{{ chapter.description }}</p>
+        {% endif %}
 
-      <div id="chapter{{ chapter.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#chaptersAccordion">
-        <div class="accordion-body" style="padding: 0">
-
-          {% if chapter.description %}
-          <p class="t-meta surface-subtle" style="padding: var(--space-3) var(--space-4); margin: 0; border-top: 1px solid var(--border)">{{ chapter.description }}</p>
-          {% endif %}
-
-          {% for lesson in chapter.lessons.all %}
-          <a class="row-link" style="border-top: 1px solid var(--border); border-radius: 0" href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug lesson.slug %}">
-            {% if lesson.id in watched_ids %}
-            <i class="bi bi-check-circle-fill text-success-ink" style="font-size: 1.1rem" aria-hidden="true"></i>
-            {% else %}
-            <i class="bi bi-play-circle text-muted-ink" style="font-size: 1.1rem" aria-hidden="true"></i>
-            {% endif %}
-
+        <div style="padding: var(--space-2)">
+          {% for lesson in chapter.lesson_list %}
+          <a class="row-link" data-lesson data-title="{{ lesson.title|lower }}" data-watched="{% if lesson.id in watched_ids %}1{% else %}0{% endif %}"
+             href="{% url 'lesson_detail' klass.slug subject.slug chapter.slug lesson.slug %}">
+            <img class="row-thumb" src="https://i.ytimg.com/vi/{{ lesson.youtube_video_id }}/mqdefault.jpg" alt="" loading="lazy" width="320" height="180" />
             <span class="flex-grow-1" style="min-width: 0">
-              <span class="row-title d-block">{{ lesson.title }}</span>
-              {% if lesson.duration_minutes %}
-              <span class="t-meta"><i class="bi bi-clock" aria-hidden="true"></i> {{ lesson.duration_minutes }} min</span>
-              {% endif %}
+              <span class="d-flex align-items-center gap-2" style="margin-bottom: 0.15rem">
+                <span class="chip chip-accent" style="font-size: 0.72rem; padding: 0.05rem 0.5rem">{{ lesson.ep_index }}/{{ lesson.ep_total }}</span>
+                {% if lesson.duration_minutes %}<span class="t-meta"><i class="bi bi-clock" aria-hidden="true"></i> {{ lesson.duration_minutes }} min</span>{% endif %}
+              </span>
+              <span class="row-title d-block truncate-2">{{ lesson.title }}</span>
             </span>
-
             {% if lesson.id in watched_ids %}
-            <span class="chip chip-success">Watched</span>
+            <span class="chip chip-success flex-shrink-0"><i class="bi bi-check-lg" aria-hidden="true"></i><span class="d-none d-sm-inline">Watched</span><span class="sr-only d-sm-none">Watched</span></span>
             {% else %}
-            <i class="bi bi-chevron-right text-muted-ink" aria-hidden="true"></i>
+            <i class="bi bi-play-circle-fill text-toon flex-shrink-0" style="font-size: 1.5rem" aria-hidden="true"></i>
             {% endif %}
           </a>
           {% empty %}
-          <p class="t-meta" style="padding: var(--space-4); margin: 0; border-top: 1px solid var(--border)">No lessons added yet.</p>
+          <p class="t-meta" style="padding: var(--space-3); margin: 0">No lessons in this chapter yet.</p>
           {% endfor %}
+        </div>
 
-          {% if chapter.quiz %}
-          <div class="surface-subtle d-flex align-items-center justify-content-between gap-3 flex-wrap" style="padding: var(--space-4); border-top: 1px solid var(--border)">
+        {% if chapter.quiz %}
+        <div class="playlist-quiz">
+          <span class="d-flex align-items-center gap-3">
+            <span class="d-grid" style="place-items: center; width: 42px; height: 42px; border-radius: 12px; background: var(--sun); color: #0b1640; font-size: 1.2rem" aria-hidden="true"><i class="bi bi-trophy-fill"></i></span>
             <span>
-              <span class="d-block" style="font-weight: 600; font-size: 0.9375rem">Chapter quiz</span>
+              <span class="d-block" style="font-family: var(--font-display); font-weight: 800; font-size: 1.05rem">Chapter quiz</span>
               <span class="t-meta">Pass mark {{ chapter.quiz.pass_percentage }}%</span>
             </span>
-            {% if chapter.quiz.id in attempted_quiz_ids %}
-            <span class="d-flex gap-2 flex-wrap">
-              <a class="btn btn-soft btn-sm-q" href="{% url 'quiz' klass.slug subject.slug chapter.slug %}">
-                <i class="bi bi-arrow-repeat" aria-hidden="true"></i>Retry
-              </a>
-              <a class="btn btn-quiet btn-sm-q" href="{% url 'quiz_analysis' klass.slug subject.slug chapter.slug %}">
-                <i class="bi bi-bar-chart" aria-hidden="true"></i>View analysis
-              </a>
-            </span>
-            {% else %}
-            <a class="btn btn-soft btn-sm-q" href="{% url 'quiz' klass.slug subject.slug chapter.slug %}">
-              <i class="bi bi-patch-question" aria-hidden="true"></i>Take quiz
+          </span>
+          {% if chapter.quiz.id in attempted_quiz_ids %}
+          <span class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-accent btn-sm-q" href="{% url 'quiz' klass.slug subject.slug chapter.slug %}">
+              <i class="bi bi-arrow-repeat" aria-hidden="true"></i>Retry
             </a>
-            {% endif %}
-          </div>
+            <a class="btn btn-quiet btn-sm-q" href="{% url 'quiz_analysis' klass.slug subject.slug chapter.slug %}">
+              <i class="bi bi-bar-chart" aria-hidden="true"></i>View analysis
+            </a>
+          </span>
+          {% else %}
+          <a class="btn btn-accent btn-sm-q" href="{% url 'quiz' klass.slug subject.slug chapter.slug %}">
+            <i class="bi bi-patch-question" aria-hidden="true"></i>Take quiz
+          </a>
           {% endif %}
-
         </div>
+        {% endif %}
       </div>
-    </div>
+    </details>
     {% endfor %}
   </div>
 
   {% else %}
   <div class="empty">
-    <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
-    <div style="color: var(--text); font-weight: 600">No chapters yet</div>
-    <div class="t-meta" style="margin-top: 0.25rem">Chapters for {{ subject.name }} haven't been added.</div>
+    {% include 'partials/mascot.html' with uid='empty' mood='think' %}
+    <div style="color: var(--text); font-weight: 700">No chapters yet</div>
+    <div class="t-meta" style="margin-top: 0.25rem">Chapters for {{ subject.name }} haven't been added yet.</div>
   </div>
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var input = document.getElementById("lessonFilter");
+    var toggle = document.getElementById("hideWatched");
+    if (!input || !toggle) return;
+    var chapters = Array.prototype.slice.call(document.querySelectorAll("[data-chapter]"));
+    var emptyNote = document.getElementById("filterEmpty");
+    var initialOpen = chapters.map(function (c) { return c.open; });
+
+    function apply() {
+      var q = input.value.trim().toLowerCase();
+      var hideWatched = toggle.getAttribute("aria-pressed") === "true";
+      var filtering = q !== "" || hideWatched;
+      var anyVisible = false;
+
+      chapters.forEach(function (chapter, i) {
+        var rows = chapter.querySelectorAll("[data-lesson]");
+        var shown = 0;
+        rows.forEach(function (row) {
+          var match = (!q || row.dataset.title.indexOf(q) !== -1) &&
+                      !(hideWatched && row.dataset.watched === "1");
+          row.hidden = !match;
+          if (match) shown++;
+        });
+        // While filtering, a chapter with no matching lessons drops out and
+        // every remaining one opens, so matches are never hidden in a fold.
+        chapter.hidden = filtering && shown === 0;
+        chapter.open = filtering ? shown > 0 : initialOpen[i];
+        if (!chapter.hidden) anyVisible = true;
+      });
+      emptyNote.hidden = anyVisible;
+    }
+
+    input.addEventListener("input", apply);
+    toggle.addEventListener("click", function () {
+      toggle.setAttribute("aria-pressed", toggle.getAttribute("aria-pressed") === "true" ? "false" : "true");
+      apply();
+    });
+  })();
+</script>
 {% endblock %}

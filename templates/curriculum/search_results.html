@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
-{% block title %}{% if query %}“{{ query }}” — Search{% else %}Search{% endif %} — EduLearn{% endblock %}
+{% block title %}{% if query %}“{{ query }}” — Search{% else %}Search{% endif %} — MathsToons{% endblock %}
 
 {% block content %}
-<div class="container-page" style="padding-top: var(--space-6); padding-bottom: var(--space-8)">
+<div class="container-page" style="padding-top: var(--space-5); padding-bottom: var(--space-8)">
 
   <ol class="crumbs">
     <li><a href="{% url 'dashboard' %}">Home</a></li>
@@ -10,57 +10,113 @@
   </ol>
 
   <!-- ── Search box ── -->
-  <header class="reveal reveal-1" style="margin-bottom: var(--space-6)">
-    <h1 class="t-h1" style="margin-bottom: var(--space-4)">Search</h1>
-    <form method="get" role="search" style="max-width: 560px">
+  <header class="reveal reveal-1" style="margin-bottom: var(--space-5)">
+    <h1 class="t-h1" style="margin-bottom: var(--space-4)">Find a lesson</h1>
+    <form method="get" role="search" style="max-width: 620px">
       <div class="d-flex gap-2">
-        <label class="sr-only" for="searchInput">Search subjects, chapters and lessons</label>
-        <input
-          class="input"
-          type="search"
-          id="searchInput"
-          name="q"
-          value="{{ query }}"
-          placeholder="Search subjects, chapters, lessons…"
-          autofocus
-        />
-        <button class="btn btn-accent flex-shrink-0" type="submit">
-          <i class="bi bi-search" aria-hidden="true"></i>Search
-        </button>
+        <div class="nav-search flex-grow-1" style="margin: 0">
+          <label class="sr-only" for="searchInput">Search lessons, chapters, subjects and classes</label>
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <input class="input" type="search" id="searchInput" name="q" value="{{ query }}"
+                 placeholder="Try “midpoint” or “linear equations”" autofocus style="width: 100%; min-height: 50px" />
+        </div>
+        <button class="btn btn-accent flex-shrink-0" type="submit" style="--_h: 50px">Search</button>
       </div>
     </form>
   </header>
 
   {% if not query %}
   <div class="empty">
-    <i class="bi bi-search empty-icon" aria-hidden="true"></i>
-    <div style="color: var(--text); font-weight: 600">Start typing to search</div>
-    <div class="t-meta" style="margin-top: 0.25rem">Find a subject, a chapter, or a specific lesson by name.</div>
+    {% include 'partials/mascot.html' with uid='empty' mood='think' %}
+    <div style="color: var(--text); font-weight: 700">Start typing to search</div>
+    <div class="t-meta" style="margin-top: 0.25rem">Search by lesson name, chapter, subject or class. For example: “centroid”.</div>
   </div>
 
   {% elif total_results == 0 %}
   <div class="empty reveal reveal-2">
-    <i class="bi bi-emoji-frown empty-icon" aria-hidden="true"></i>
-    <div style="color: var(--text); font-weight: 600">No results for “{{ query }}”</div>
-    <div class="t-meta" style="margin-top: 0.25rem">Try a different word, or check the spelling.</div>
+    {% include 'partials/mascot.html' with uid='empty' mood='think' %}
+    <div style="color: var(--text); font-weight: 700">No results for “{{ query }}”</div>
+    <div class="t-meta" style="margin-top: 0.25rem">Try a shorter word, or check the spelling.</div>
   </div>
 
   {% else %}
-  <p class="t-meta reveal reveal-2" style="margin-bottom: var(--space-6)">
-    {{ total_results }} result{{ total_results|pluralize }} for “{{ query }}”
-  </p>
-
-  <!-- ── Classes ── -->
-  {% if classes_page.paginator.count %}
-  <section aria-labelledby="classesHeading" style="margin-bottom: var(--space-7)">
-    <div class="d-flex align-items-center gap-2" style="margin-bottom: var(--space-3)">
-      <span id="classesHeading" class="t-eyebrow">Classes</span>
-      <span class="chip">{{ classes_page.paginator.count }}</span>
+  <!-- ── Type filter ── -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 reveal reveal-2" style="margin-bottom: var(--space-5)">
+    <p class="t-meta" style="margin: 0; font-size: 0.95rem">{{ total_results }} result{{ total_results|pluralize }} for “{{ query }}”</p>
+    <div class="filter-chips" role="group" aria-label="Show results of type">
+      <button class="filter-chip" type="button" data-filter="all" aria-pressed="true">All</button>
+      {% if lessons_page.paginator.count %}<button class="filter-chip" type="button" data-filter="lessons" aria-pressed="false">Lessons <span class="count">{{ lessons_page.paginator.count }}</span></button>{% endif %}
+      {% if chapters_page.paginator.count %}<button class="filter-chip" type="button" data-filter="chapters" aria-pressed="false">Chapters <span class="count">{{ chapters_page.paginator.count }}</span></button>{% endif %}
+      {% if subjects_page.paginator.count %}<button class="filter-chip" type="button" data-filter="subjects" aria-pressed="false">Subjects <span class="count">{{ subjects_page.paginator.count }}</span></button>{% endif %}
+      {% if classes_page.paginator.count %}<button class="filter-chip" type="button" data-filter="classes" aria-pressed="false">Classes <span class="count">{{ classes_page.paginator.count }}</span></button>{% endif %}
     </div>
-    <div class="panel reveal reveal-3" style="padding: var(--space-2)">
+  </div>
+
+  <!-- ── Lessons first: they're what most searches are for ── -->
+  {% if lessons_page.paginator.count %}
+  <section data-section="lessons" aria-labelledby="lessonsHeading" style="margin-bottom: var(--space-7)">
+    <h2 id="lessonsHeading" class="t-h3" style="margin-bottom: var(--space-3)">Lessons</h2>
+    <div class="panel" style="padding: var(--space-2)">
+      {% for lesson in lessons_page %}
+      <a class="row-link" href="{% url 'lesson_detail' lesson.chapter.subject.klass.slug lesson.chapter.subject.slug lesson.chapter.slug lesson.slug %}">
+        <img class="row-thumb" src="https://i.ytimg.com/vi/{{ lesson.youtube_video_id }}/mqdefault.jpg" alt="" loading="lazy" width="320" height="180" />
+        <span class="flex-grow-1" style="min-width: 0">
+          <span class="row-title d-block truncate-2">{{ lesson.title }}</span>
+          <span class="t-meta">{{ lesson.chapter.subject.klass.name }} · Ch {{ lesson.chapter.order }} {{ lesson.chapter.title }}</span>
+        </span>
+        <i class="bi bi-play-circle-fill text-toon flex-shrink-0" style="font-size: 1.4rem" aria-hidden="true"></i>
+      </a>
+      {% endfor %}
+    </div>
+    {% include 'curriculum/_pager.html' with page_obj=lessons_page param_name='lpage' pager_query=lessons_pager_query %}
+  </section>
+  {% endif %}
+
+  {% if chapters_page.paginator.count %}
+  <section data-section="chapters" aria-labelledby="chaptersHeading" style="margin-bottom: var(--space-7)">
+    <h2 id="chaptersHeading" class="t-h3" style="margin-bottom: var(--space-3)">Chapters</h2>
+    <div class="panel" style="padding: var(--space-2)">
+      {% for chapter in chapters_page %}
+      <a class="row-link" href="{% url 'chapter_list' chapter.subject.klass.slug chapter.subject.slug %}">
+        <span class="row-index flex-shrink-0">{{ chapter.order }}</span>
+        <span class="flex-grow-1" style="min-width: 0">
+          <span class="row-title d-block">{{ chapter.title }}</span>
+          <span class="t-meta">{{ chapter.subject.klass.name }} · {{ chapter.subject.name }}</span>
+        </span>
+        <i class="bi bi-chevron-right text-muted-ink flex-shrink-0" aria-hidden="true"></i>
+      </a>
+      {% endfor %}
+    </div>
+    {% include 'curriculum/_pager.html' with page_obj=chapters_page param_name='cpage' pager_query=chapters_pager_query %}
+  </section>
+  {% endif %}
+
+  {% if subjects_page.paginator.count %}
+  <section data-section="subjects" aria-labelledby="subjectsHeading" style="margin-bottom: var(--space-7)">
+    <h2 id="subjectsHeading" class="t-h3" style="margin-bottom: var(--space-3)">Subjects</h2>
+    <div class="panel" style="padding: var(--space-2)">
+      {% for subject in subjects_page %}
+      <a class="row-link" href="{% url 'chapter_list' subject.klass.slug subject.slug %}">
+        <i class="bi {{ subject.icon_class }} text-accent flex-shrink-0" style="font-size: 1.2rem" aria-hidden="true"></i>
+        <span class="flex-grow-1" style="min-width: 0">
+          <span class="row-title d-block">{{ subject.name }}</span>
+          <span class="t-meta truncate-1">{{ subject.klass.name }}{% if subject.description %} · {{ subject.description }}{% endif %}</span>
+        </span>
+        <i class="bi bi-chevron-right text-muted-ink flex-shrink-0" aria-hidden="true"></i>
+      </a>
+      {% endfor %}
+    </div>
+    {% include 'curriculum/_pager.html' with page_obj=subjects_page param_name='spage' pager_query=subjects_pager_query %}
+  </section>
+  {% endif %}
+
+  {% if classes_page.paginator.count %}
+  <section data-section="classes" aria-labelledby="classesHeading" style="margin-bottom: var(--space-7)">
+    <h2 id="classesHeading" class="t-h3" style="margin-bottom: var(--space-3)">Classes</h2>
+    <div class="panel" style="padding: var(--space-2)">
       {% for klass in classes_page %}
       <a class="row-link" href="{% url 'subject_list' klass.slug %}">
-        <i class="bi {{ klass.icon }} text-accent flex-shrink-0" aria-hidden="true"></i>
+        <i class="bi {{ klass.icon }} text-accent flex-shrink-0" style="font-size: 1.2rem" aria-hidden="true"></i>
         <span class="flex-grow-1" style="min-width: 0">
           <span class="row-title d-block">{{ klass.name }}</span>
           <span class="t-meta truncate-1">
@@ -75,76 +131,23 @@
   </section>
   {% endif %}
 
-  <!-- ── Subjects ── -->
-  {% if subjects_page.paginator.count %}
-  <section aria-labelledby="subjectsHeading" style="margin-bottom: var(--space-7)">
-    <div class="d-flex align-items-center gap-2" style="margin-bottom: var(--space-3)">
-      <span id="subjectsHeading" class="t-eyebrow">Subjects</span>
-      <span class="chip">{{ subjects_page.paginator.count }}</span>
-    </div>
-    <div class="panel reveal reveal-3" style="padding: var(--space-2)">
-      {% for subject in subjects_page %}
-      <a class="row-link" href="{% url 'chapter_list' subject.klass.slug subject.slug %}">
-        <i class="bi {{ subject.icon_class }} text-accent flex-shrink-0" aria-hidden="true"></i>
-        <span class="flex-grow-1" style="min-width: 0">
-          <span class="row-title d-block">{{ subject.name }}</span>
-          <span class="t-meta truncate-1">{{ subject.klass.name }}{% if subject.description %} · {{ subject.description }}{% endif %}</span>
-        </span>
-        <i class="bi bi-chevron-right text-muted-ink flex-shrink-0" aria-hidden="true"></i>
-      </a>
-      {% endfor %}
-    </div>
-    {% include 'curriculum/_pager.html' with page_obj=subjects_page param_name='spage' pager_query=subjects_pager_query %}
-  </section>
-  {% endif %}
-
-  <!-- ── Chapters ── -->
-  {% if chapters_page.paginator.count %}
-  <section aria-labelledby="chaptersHeading" style="margin-bottom: var(--space-7)">
-    <div class="d-flex align-items-center gap-2" style="margin-bottom: var(--space-3)">
-      <span id="chaptersHeading" class="t-eyebrow">Chapters</span>
-      <span class="chip">{{ chapters_page.paginator.count }}</span>
-    </div>
-    <div class="panel reveal reveal-3" style="padding: var(--space-2)">
-      {% for chapter in chapters_page %}
-      <a class="row-link" href="{% url 'chapter_list' chapter.subject.klass.slug chapter.subject.slug %}">
-        <i class="bi bi-collection text-accent flex-shrink-0" aria-hidden="true"></i>
-        <span class="flex-grow-1" style="min-width: 0">
-          <span class="row-title d-block">{{ chapter.title }}</span>
-          <span class="t-meta">{{ chapter.subject.klass.name }} · {{ chapter.subject.name }}</span>
-        </span>
-        <i class="bi bi-chevron-right text-muted-ink flex-shrink-0" aria-hidden="true"></i>
-      </a>
-      {% endfor %}
-    </div>
-    {% include 'curriculum/_pager.html' with page_obj=chapters_page param_name='cpage' pager_query=chapters_pager_query %}
-  </section>
-  {% endif %}
-
-  <!-- ── Lessons ── -->
-  {% if lessons_page.paginator.count %}
-  <section aria-labelledby="lessonsHeading" style="margin-bottom: var(--space-7)">
-    <div class="d-flex align-items-center gap-2" style="margin-bottom: var(--space-3)">
-      <span id="lessonsHeading" class="t-eyebrow">Lessons</span>
-      <span class="chip">{{ lessons_page.paginator.count }}</span>
-    </div>
-    <div class="panel reveal reveal-3" style="padding: var(--space-2)">
-      {% for lesson in lessons_page %}
-      <a class="row-link" href="{% url 'lesson_detail' lesson.chapter.subject.klass.slug lesson.chapter.subject.slug lesson.chapter.slug lesson.slug %}">
-        <i class="bi bi-play-circle text-accent flex-shrink-0" aria-hidden="true"></i>
-        <span class="flex-grow-1" style="min-width: 0">
-          <span class="row-title d-block">{{ lesson.title }}</span>
-          <span class="t-meta">{{ lesson.chapter.subject.klass.name }} · {{ lesson.chapter.subject.name }} · {{ lesson.chapter.title }}</span>
-        </span>
-        <i class="bi bi-chevron-right text-muted-ink flex-shrink-0" aria-hidden="true"></i>
-      </a>
-      {% endfor %}
-    </div>
-    {% include 'curriculum/_pager.html' with page_obj=lessons_page param_name='lpage' pager_query=lessons_pager_query %}
-  </section>
-  {% endif %}
-
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var chips = document.querySelectorAll("[data-filter]");
+    var sections = document.querySelectorAll("[data-section]");
+    chips.forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        var which = chip.dataset.filter;
+        chips.forEach(function (c) { c.setAttribute("aria-pressed", c === chip ? "true" : "false"); });
+        sections.forEach(function (s) { s.hidden = which !== "all" && s.dataset.section !== which; });
+      });
+    });
+  })();
+</script>
 {% endblock %}

@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from curriculum.models import Lesson
+from curriculum.selectors import attach_positions
 from quizzes.models import QuizAttempt
 
 from .models import LessonProgress
@@ -13,6 +14,8 @@ from .selectors import (
     annotate_class_progress,
     class_progress_rows,
     quiz_stats,
+    recently_viewed,
+    recommended_lessons,
     study_minutes,
     study_streak,
     watched_day_set,
@@ -95,6 +98,9 @@ def dashboard(request):
 
     today = timezone.localdate()
     day_set = watched_day_set(request.user)
+    resume_lesson = _resume_target(request.user)
+    if resume_lesson is not None:
+        attach_positions([resume_lesson])
 
     return render(request, 'progress/dashboard.html', {
         'class_data': class_data,
@@ -107,7 +113,13 @@ def dashboard(request):
         'quizzes_passed': QuizAttempt.objects.filter(
             user=request.user, passed=True
         ).values('quiz').distinct().count(),
-        'resume_lesson': _resume_target(request.user),
+        'resume_lesson': resume_lesson,
+        'recent_views': recently_viewed(request.user),
+        # The resume card already offers that lesson; don't list it twice.
+        'up_next': recommended_lessons(
+            request.user,
+            exclude_ids=[resume_lesson.id] if resume_lesson else (),
+        ),
     })
 
 

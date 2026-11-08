@@ -1,83 +1,80 @@
 {% extends 'base.html' %}
-{% block title %}Dashboard — EduLearn{% endblock %}
+{% block title %}Home — MathsToons{% endblock %}
 
 {% block content %}
-<div class="container-page" style="padding-top: var(--space-7); padding-bottom: var(--space-7)">
+<div class="container-page" style="padding-top: var(--space-6); padding-bottom: var(--space-7)">
 
   <!-- ── Greeting ── -->
-  <header class="reveal reveal-1" style="margin-bottom: var(--space-6)">
-    <h1 class="t-h1" style="margin-bottom: 0.35rem">
-      {% if streak > 1 %}Welcome back, {{ user.first_name|default:user.username }}.{% else %}Hello, {{ user.first_name|default:user.username }}.{% endif %}
-    </h1>
-    <p class="t-lead" style="margin-bottom: 0">
-      {% if watched_all %}You've completed {{ watched_all }} of {{ total_all }} lesson{{ total_all|pluralize }} so far.{% else %}Choose a class below to begin.{% endif %}
-    </p>
+  <header class="d-flex align-items-center justify-content-between gap-4 reveal reveal-1" style="margin-bottom: var(--space-6)">
+    <div style="min-width: 0">
+      <h1 class="t-h1" style="margin-bottom: 0.35rem">
+        {% if streak > 1 %}Welcome back, {{ user.first_name|default:user.username }}!{% else %}Hello, {{ user.first_name|default:user.username }}!{% endif %}
+      </h1>
+      <p class="t-lead" style="margin-bottom: 0">
+        {% if watched_all %}You've finished {{ watched_all }} of {{ total_all }} lesson{{ total_all|pluralize }}{% if streak > 1 %}, and you're on a {{ streak }}-day streak{% endif %}.{% elif class_groups %}Pick a class below and press play on your first lesson.{% else %}Lessons are on their way.{% endif %}
+      </p>
+    </div>
+    <div class="d-none d-sm-block flex-shrink-0 mascot-float" style="width: 92px">
+      {% if watched_all %}{% include 'partials/mascot.html' with uid='dash' mood='cheer' %}{% else %}{% include 'partials/mascot.html' with uid='dash' %}{% endif %}
+    </div>
   </header>
 
-  <!-- ── Resume ── -->
+  <!-- ── Continue ── -->
   {% if resume_lesson %}
-  <a class="card-link reveal reveal-2 d-flex align-items-center gap-3" style="padding: var(--space-4) var(--space-5); margin-bottom: var(--space-6)" href="{% url 'lesson_detail' resume_lesson.chapter.subject.klass.slug resume_lesson.chapter.subject.slug resume_lesson.chapter.slug resume_lesson.slug %}">
-    <span class="avatar avatar-lg" aria-hidden="true"><i class="bi bi-play-fill" style="font-size: 1.25rem"></i></span>
-    <span class="flex-grow-1" style="min-width: 0">
-      <span class="t-eyebrow d-block">Pick up where you left off</span>
-      <span class="d-block truncate-1" style="font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem">{{ resume_lesson.title }}</span>
-      <span class="t-meta truncate-1">{{ resume_lesson.chapter.subject.klass.name }} · {{ resume_lesson.chapter.subject.name }} · {{ resume_lesson.chapter.title }}</span>
+  {% with chapter=resume_lesson.chapter %}
+  <a class="card-link reveal reveal-2" style="margin-bottom: var(--space-7); overflow: hidden" href="{% url 'lesson_detail' chapter.subject.klass.slug chapter.subject.slug chapter.slug resume_lesson.slug %}">
+    <span class="row g-0 align-items-center">
+      <span class="col-sm-5 col-md-4">
+        <span class="thumb d-block">
+          <img src="https://i.ytimg.com/vi/{{ resume_lesson.youtube_video_id }}/hqdefault.jpg" alt="" width="480" height="360" />
+          <span class="thumb-play" style="opacity: 1; background: rgba(8,16,46,0.25)" aria-hidden="true"><span><i class="bi bi-play-fill"></i></span></span>
+        </span>
+      </span>
+      <span class="col-sm-7 col-md-8">
+        <span class="d-flex flex-column gap-2" style="padding: var(--space-5)">
+          <span class="t-eyebrow" style="color: var(--toon)">Pick up where you left off</span>
+          <span>{% include 'partials/ep_strip.html' with lesson=resume_lesson %}</span>
+          <span class="t-h2" style="font-size: clamp(1.25rem, 2.2vw, 1.6rem)">{{ resume_lesson.title }}</span>
+          <span class="t-meta">{{ chapter.subject.name }} · {{ chapter.title }}</span>
+          <span class="btn btn-accent align-self-start" style="margin-top: var(--space-2)">Continue<i class="bi bi-play-fill" aria-hidden="true"></i></span>
+        </span>
+      </span>
     </span>
-    <i class="bi bi-arrow-right text-muted-ink d-none d-sm-block" aria-hidden="true"></i>
   </a>
+  {% endwith %}
   {% endif %}
 
-  <!-- ── Stats ── -->
-  <div class="stat-row reveal reveal-3" style="margin-bottom: var(--space-7)">
-    <div class="stat">
-      <div class="stat-value">{{ overall_percent }}<span style="font-size: 1rem; color: var(--text-muted)">%</span></div>
-      <div class="stat-label">Overall complete</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">{{ watched_all }}<span style="font-size: 1rem; color: var(--text-muted)">/{{ total_all }}</span></div>
-      <div class="stat-label">Lessons watched</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">
-        {{ streak }}
-        {% if streak > 0 %}<i class="bi bi-fire text-warn-ink" style="font-size: 1.15rem" aria-hidden="true"></i>{% endif %}
-      </div>
-      <div class="stat-label">Day streak</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">{{ quizzes_passed }}</div>
-      <div class="stat-label">Quiz{{ quizzes_passed|pluralize:"zes" }} passed</div>
-    </div>
-  </div>
-
-  <!-- ── This week ── -->
-  <div class="panel reveal reveal-3 d-flex align-items-center justify-content-between gap-3 flex-wrap" style="margin-bottom: var(--space-7)">
-    <div>
-      <div class="t-eyebrow" style="margin-bottom: 0.3rem">Last 7 days</div>
-      <div class="t-meta">
-        {% if streak > 1 %}{{ streak }} days in a row — keep it going.{% elif streak == 1 %}You studied today. Come back tomorrow to start a streak.{% else %}No activity yet this week.{% endif %}
+  <!-- ── Up next ── -->
+  {% if up_next %}
+  <section aria-labelledby="upNextHeading" class="reveal reveal-3" style="margin-bottom: var(--space-7)">
+    <div class="section-head">
+      <div>
+        <span class="t-eyebrow">Recommended</span>
+        <h2 id="upNextHeading" class="t-h2" style="margin-top: 0.15rem">Up next for you</h2>
       </div>
     </div>
-    <div class="streak-days" role="img" aria-label="Study activity for the last 7 days">
-      {% for day in week_activity %}
-      <span class="streak-dot {% if day.active %}is-active{% endif %}" title="{{ day.day|date:'D j M' }}{% if day.active %} — studied{% endif %}"></span>
+    <div class="rail">
+      {% for lesson in up_next %}
+      <div>{% include 'partials/lesson_card.html' %}</div>
       {% endfor %}
     </div>
-  </div>
+  </section>
+  {% endif %}
 
   <!-- ── Classes, one section per course kind ── -->
   {% for group in class_groups %}
   <section aria-labelledby="group{{ forloop.counter }}" style="margin-bottom: var(--space-7)">
-    <div class="d-flex align-items-center gap-2" style="margin-bottom: var(--space-3)">
-      {% if group.kind %}
-      <i class="bi {{ group.kind.icon }}" style="color: {{ group.kind.color }}" aria-hidden="true"></i>
-      <span id="group{{ forloop.counter }}" class="t-eyebrow">{{ group.kind.name }}</span>
-      {% else %}
-      <span id="group{{ forloop.counter }}" class="t-eyebrow">Your classes</span>
-      {% endif %}
-      <span class="chip">{{ group.classes|length }}</span>
+    <div class="section-head">
+      <div class="d-flex align-items-center gap-2">
+        {% if group.kind %}
+        <i class="bi {{ group.kind.icon }}" style="color: {{ group.kind.color }}; font-size: 1.3rem" aria-hidden="true"></i>
+        <h2 id="group{{ forloop.counter }}" class="t-h2">{{ group.kind.name }}</h2>
+        {% else %}
+        <h2 id="group{{ forloop.counter }}" class="t-h2">Your classes</h2>
+        {% endif %}
+        <span class="chip">{{ group.classes|length }}</span>
+      </div>
     </div>
-
     <div class="row g-3">
       {% for item in group.classes %}
       {% include 'curriculum/_class_card.html' %}
@@ -86,13 +83,76 @@
   </section>
 
   {% empty %}
-  <div class="t-eyebrow" style="margin-bottom: var(--space-3)">Your classes</div>
-  <div class="empty">
-    <i class="bi bi-journal-x empty-icon" aria-hidden="true"></i>
-    <div style="color: var(--text); font-weight: 600">Nothing here yet</div>
-    <div class="t-meta" style="margin-top: 0.25rem">Content is being added. Check back soon.</div>
+  <h2 class="t-h2" style="margin-bottom: var(--space-3)">Your classes</h2>
+  <div class="empty" style="margin-bottom: var(--space-7)">
+    {% include 'partials/mascot.html' with uid='empty' mood='think' %}
+    <div style="color: var(--text); font-weight: 700">Nothing here yet</div>
+    <div class="t-meta" style="margin-top: 0.25rem">New lessons are being added. Subscribe on YouTube to catch them first.</div>
+    <a class="btn btn-youtube btn-sm-q" style="margin-top: var(--space-4)" href="{{ YOUTUBE_CHANNEL_URL }}?sub_confirmation=1" target="_blank" rel="noopener">
+      <i class="bi bi-youtube" aria-hidden="true"></i>Subscribe<span class="sr-only"> (opens in a new tab)</span>
+    </a>
   </div>
   {% endfor %}
+
+  <!-- ── Recently watched ── -->
+  {% if recent_views %}
+  <section aria-labelledby="recentHeading" style="margin-bottom: var(--space-7)">
+    <div class="section-head">
+      <div>
+        <span class="t-eyebrow">History</span>
+        <h2 id="recentHeading" class="t-h2" style="margin-top: 0.15rem">Recently watched</h2>
+      </div>
+    </div>
+    <div class="rail">
+      {% for row in recent_views %}
+      <div>{% include 'partials/lesson_card.html' with lesson=row.lesson watched=row.watched %}</div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ── Scoreboard ── -->
+  <section aria-labelledby="statsHeading">
+    <div class="section-head">
+      <h2 id="statsHeading" class="t-h2">Your scoreboard</h2>
+      <a class="btn btn-ghost btn-sm-q" href="{% url 'my_progress' %}">Full progress<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+    </div>
+    <div class="stat-row" style="margin-bottom: var(--space-3)">
+      <div class="stat">
+        <div class="stat-value">{{ overall_percent }}<span style="font-size: 1rem; color: var(--text-muted)">%</span></div>
+        <div class="stat-label">Overall complete</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">{{ watched_all }}<span style="font-size: 1rem; color: var(--text-muted)">/{{ total_all }}</span></div>
+        <div class="stat-label">Lessons watched</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">
+          {{ streak }}
+          {% if streak > 0 %}<i class="bi bi-fire text-toon" style="font-size: 1.3rem" aria-hidden="true"></i>{% endif %}
+        </div>
+        <div class="stat-label">Day streak</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">{{ quizzes_passed }}</div>
+        <div class="stat-label">Quiz{{ quizzes_passed|pluralize:"zes" }} passed</div>
+      </div>
+    </div>
+
+    <div class="panel d-flex align-items-center justify-content-between gap-3 flex-wrap">
+      <div>
+        <div class="t-eyebrow" style="margin-bottom: 0.2rem">Last 7 days</div>
+        <div class="t-meta" style="font-size: 0.9rem">
+          {% if streak > 1 %}{{ streak }} days in a row — keep it going!{% elif streak == 1 %}You studied today. Come back tomorrow to start a streak.{% else %}No lessons marked watched this week yet.{% endif %}
+        </div>
+      </div>
+      <div class="streak-days" role="img" aria-label="Study activity for the last 7 days">
+        {% for day in week_activity %}
+        <span class="streak-dot {% if day.active %}is-active{% endif %}" title="{{ day.day|date:'D j M' }}{% if day.active %} — studied{% endif %}"></span>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
 
 </div>
 {% endblock %}

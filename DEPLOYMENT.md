@@ -80,7 +80,9 @@ table and what each one does. At minimum for a production boot:
   `SECURE_HSTS_SECONDS` (default `3600` — start low, raise once TLS is
   confirmed stable; browsers honor `max-age` even after the header stops
   being sent), `SECURE_HSTS_INCLUDE_SUBDOMAINS`, `LOGIN_RATE_LIMIT`,
-  `REGISTRATION_RATE_LIMIT`, `DJANGO_LOG_LEVEL`.
+  `REGISTRATION_RATE_LIMIT`, `DJANGO_LOG_LEVEL`, `YOUTUBE_CHANNEL_URL`
+  (default `https://www.youtube.com/@MathsToons_03` — every Subscribe /
+  channel link on the site points here).
 
 Never place real values for any of these in a committed file.
 

@@ -11,11 +11,15 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import PasswordChangeView
 from django.contrib import messages
 from django.db import IntegrityError, transaction
+from django.db.models import Count
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
+
+from curriculum.models import Class
+from curriculum.selectors import latest_lessons, live_lessons
 
 from .forms import GoogleCompleteProfileForm, ProfileForm
 from .google_oauth import (
@@ -34,7 +38,24 @@ logger = logging.getLogger(__name__)
 def landing(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
-    return render(request, 'accounts/landing.html')
+    return render(request, 'accounts/landing.html', {
+        # Real catalogue, not marketing copy: the classes and newest lessons an
+        # admin has actually published. Explicit order_by because the
+        # aggregate drops Class.Meta.ordering.
+        'classes': Class.objects.filter(is_active=True).annotate(
+            lesson_count=Count('subjects__chapters__lessons', distinct=True),
+            chapter_count=Count('subjects__chapters', distinct=True),
+        ).order_by('order', 'name'),
+        'latest_lessons': latest_lessons(limit=6),
+    })
+
+
+def about(request):
+    """Public page about the MathsToons channel and how the site works."""
+    return render(request, 'accounts/about.html', {
+        'lesson_count': live_lessons().count(),
+        'class_count': Class.objects.filter(is_active=True).count(),
+    })
 
 
 # New accounts are created through Google only (see google_complete_profile_view)

@@ -1,0 +1,19 @@
+{% comment %}
+The episode strip from the channel's thumbnails: CLASS 9 · CH 12 · 8/9.
+
+  lesson  a Lesson with chapter__subject__klass loaded; `ep_index`/`ep_total`
+          (see curriculum.selectors.attach_positions) add the 8/9 segment
+  index, total  explicit position when the caller already knows it
+  size    "lg" for the bigger version above the player
+
+firstof, not |default: a filter *argument* that doesn't resolve raises,
+and a lesson only carries ep_index when a selector attached it.
+{% endcomment %}
+{% firstof index lesson.ep_index as ep_i %}{% firstof total lesson.ep_total as ep_t %}
+{% with chapter=lesson.chapter %}
+<span class="ep-strip {% if size == 'lg' %}ep-strip-lg{% endif %}" aria-label="{{ chapter.subject.klass.name }}, chapter {{ chapter.order }}{% if ep_i %}, lesson {{ ep_i }} of {{ ep_t }}{% endif %}">
+  <span class="ep-class" aria-hidden="true">{{ chapter.subject.klass.name }}</span>
+  <span class="ep-num" aria-hidden="true">Ch {{ chapter.order }}</span>
+  {% if ep_i %}<span class="ep-pos" aria-hidden="true">{{ ep_i }}/{{ ep_t }}</span>{% endif %}
+</span>
+{% endwith %}
