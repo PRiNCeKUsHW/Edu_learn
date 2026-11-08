@@ -1,0 +1,34 @@
+{% comment %}One available-course card. `klass` is a curriculum.Class the viewer has not
+   enrolled in yet. Mirrors _class_card.html, but the progress ring and
+   chevron give way to an Enroll button: there is no progress to show and
+   nothing to drill into until the student enrols.{% endcomment %}
+<div class="col-md-6 col-xl-4">
+  <div class="panel h-100 d-flex align-items-center gap-3" style="padding: var(--space-4) var(--space-5); border-style: dashed; border-width: 2px; border-color: var(--border-strong)">
+
+    <span class="d-grid flex-shrink-0" style="place-items: center; width: 52px; height: 52px; border-radius: 16px; background: var(--accent-soft); color: var(--accent); font-size: 1.5rem; overflow: hidden" aria-hidden="true">
+      {% if klass.thumbnail %}
+      <img src="{{ klass.thumbnail.url }}" alt="" style="width: 100%; height: 100%; object-fit: cover" />
+      {% else %}
+      <i class="bi {{ klass.icon }}"></i>
+      {% endif %}
+    </span>
+
+    <span class="flex-grow-1" style="min-width: 0">
+      <span class="d-flex align-items-center gap-2 flex-wrap" style="margin-bottom: 0.1rem">
+        <span class="truncate-1" style="font-family: var(--font-display); font-weight: 800; font-size: 1.3rem">{{ klass.name }}</span>
+        {% if klass.kind %}<span class="chip">{{ klass.kind.name }}</span>{% endif %}
+      </span>
+      {% if klass.description %}
+      <span class="t-meta d-block truncate-1">{{ klass.description }}</span>
+      {% endif %}
+    </span>
+
+    <form method="post" action="{% url 'enroll' klass.slug %}" class="flex-shrink-0">
+      {% csrf_token %}
+      <button class="btn btn-accent btn-sm-q" type="submit" aria-label="Enroll in {{ klass.name }}">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>Enroll
+      </button>
+    </form>
+
+  </div>
+</div>

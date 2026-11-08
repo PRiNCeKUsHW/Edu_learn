@@ -11,7 +11,7 @@
         {% if streak > 1 %}Welcome back, {{ user.first_name|default:user.username }}!{% else %}Hello, {{ user.first_name|default:user.username }}!{% endif %}
       </h1>
       <p class="t-lead" style="margin-bottom: 0">
-        {% if watched_all %}You've finished {{ watched_all }} of {{ total_all }} lesson{{ total_all|pluralize }}{% if streak > 1 %}, and you're on a {{ streak }}-day streak{% endif %}.{% elif class_groups %}Pick a class below and press play on your first lesson.{% else %}Lessons are on their way.{% endif %}
+        {% if watched_all %}You've finished {{ watched_all }} of {{ total_all }} lesson{{ total_all|pluralize }}{% if streak > 1 %}, and you're on a {{ streak }}-day streak{% endif %}.{% elif class_groups %}Pick a class below and press play on your first lesson.{% elif available_classes %}Enroll in a course below to get started.{% else %}Lessons are on their way.{% endif %}
       </p>
     </div>
     <div class="d-none d-sm-block flex-shrink-0 mascot-float" style="width: 92px">
@@ -83,16 +83,46 @@
   </section>
 
   {% empty %}
-  <h2 class="t-h2" style="margin-bottom: var(--space-3)">Your classes</h2>
+  {% comment %}An empty dashboard is the normal first-run state -- a new student is
+     enrolled in nothing -- so point them at the courses below rather than
+     implying the site has no content.{% endcomment %}
+  <h2 class="t-h2" style="margin-bottom: var(--space-3)">Your courses</h2>
   <div class="empty" style="margin-bottom: var(--space-7)">
     {% include 'partials/mascot.html' with uid='empty' mood='think' %}
+    {% if available_classes %}
+    <div style="color: var(--text); font-weight: 700">You haven't enrolled in a course yet</div>
+    <div class="t-meta" style="margin-top: 0.25rem">Pick one from the courses below to get started.</div>
+    {% else %}
+    {% comment %}Genuinely nothing published: not an enrolment prompt, since there is
+       nothing to enrol in.{% endcomment %}
     <div style="color: var(--text); font-weight: 700">Nothing here yet</div>
     <div class="t-meta" style="margin-top: 0.25rem">New lessons are being added. Subscribe on YouTube to catch them first.</div>
     <a class="btn btn-youtube btn-sm-q" style="margin-top: var(--space-4)" href="{{ YOUTUBE_CHANNEL_URL }}?sub_confirmation=1" target="_blank" rel="noopener">
       <i class="bi bi-youtube" aria-hidden="true"></i>Subscribe<span class="sr-only"> (opens in a new tab)</span>
     </a>
+    {% endif %}
   </div>
   {% endfor %}
+
+  <!-- ── Courses still on offer ── -->
+  {% if available_classes %}
+  <section id="available" aria-labelledby="availableCourses" style="margin-bottom: var(--space-7); scroll-margin-top: var(--nav-h)">
+    <div class="section-head">
+      <div>
+        <span class="t-eyebrow">Enroll to add it to your dashboard</span>
+        <div class="d-flex align-items-center gap-2" style="margin-top: 0.15rem">
+          <h2 id="availableCourses" class="t-h2">Available courses</h2>
+          <span class="chip">{{ available_classes|length }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="row g-3">
+      {% for klass in available_classes %}
+      {% include 'curriculum/_enroll_card.html' %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 
   <!-- ── Recently watched ── -->
   {% if recent_views %}
