@@ -101,7 +101,7 @@ class TemplateCommentSyntaxTests(SimpleTestCase):
         template_root = Path(__file__).resolve().parent.parent / 'templates'
 
         for path in sorted(template_root.rglob('*.html')):
-            text = path.read_text()
+            text = path.read_text(encoding='utf-8')
             for match in self.COMMENT.finditer(text):
                 if '\n' in match.group(0):
                     line = text[:match.start()].count('\n') + 1
