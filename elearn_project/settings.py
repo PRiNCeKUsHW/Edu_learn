@@ -335,7 +335,9 @@ LOGGING = {
     },
 }
 
-if not DEBUG and ensure_log_dir(BASE_DIR / 'logs'):
+# Never on Vercel: the function filesystem is read-only, and Vercel already
+# keeps everything written to the console in its own Logs view.
+if not DEBUG and not ON_VERCEL and ensure_log_dir(BASE_DIR / 'logs'):
     # Guarded by ensure_log_dir() rather than creating the directory inline:
     # most hosts (Railway included) have a writable runtime filesystem, but
     # files written outside an explicitly mounted volume don't survive a

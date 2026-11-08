@@ -3,6 +3,7 @@ settings.py itself: Django settings modules are imported exactly once per
 process, before any test runs, so logic that lives directly in settings.py
 can't be exercised by a normal test the way this can.
 """
+import os
 
 
 def ensure_log_dir(path):
@@ -19,6 +20,9 @@ def ensure_log_dir(path):
     """
     try:
         path.mkdir(parents=True, exist_ok=True)
-        return True
     except OSError:
         return False
+    # Existing isn't enough: a directory baked into a read-only image (as on
+    # Vercel, where the build step created it) exists but can't be written,
+    # and opening a log file in it would crash Django at startup.
+    return os.access(path, os.W_OK)

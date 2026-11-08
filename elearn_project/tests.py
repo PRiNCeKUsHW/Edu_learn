@@ -75,6 +75,15 @@ class EnsureLogDirTests(SimpleTestCase):
             blocked.write_text('not a directory')
             self.assertFalse(ensure_log_dir(blocked))
 
+    def test_returns_false_for_an_existing_directory_that_is_not_writable(self):
+        """The Vercel case: the build step created logs/, so it exists in the
+        read-only deployment image, but nothing can be written to it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / 'logs'
+            target.mkdir()
+            with mock.patch('elearn_project.logging_config.os.access', return_value=False):
+                self.assertFalse(ensure_log_dir(target))
+
     def test_returns_false_instead_of_raising_on_permission_error(self):
         """Simulates a genuinely read-only filesystem — the scenario the
         function exists for — without needing an actual read-only mount."""
