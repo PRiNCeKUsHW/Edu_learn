@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import dj_database_url
@@ -18,6 +19,26 @@ ALLOWED_HOSTS = config(
     default='localhost,127.0.0.1,0.0.0.0,testserver',
     cast=Csv(),
 )
+
+# Vercel sets VERCEL=1 at build and run time. Its functions are serverless:
+# a read-only filesystem, no release step, and many short-lived instances
+# that share no memory -- the settings below that check ON_VERCEL adapt to
+# that. Local development and any long-running host are unaffected.
+ON_VERCEL = bool(os.environ.get('VERCEL'))
+
+# This project's own Vercel addresses, from Vercel's system variables: the
+# production domain, this deployment's unique URL and its branch URL. Not
+# the whole of *.vercel.app -- that would also trust every other site on
+# Vercel, including one an attacker deploys, for CSRF's origin check.
+VERCEL_HOSTS = [
+    host for host in (
+        os.environ.get('VERCEL_PROJECT_PRODUCTION_URL'),
+        os.environ.get('VERCEL_URL'),
+        os.environ.get('VERCEL_BRANCH_URL'),
+    ) if host
+]
+if ON_VERCEL:
+    ALLOWED_HOSTS = [*ALLOWED_HOSTS, *VERCEL_HOSTS]
 
 # Refuse to boot in production on the placeholder key — otherwise session and
 # CSRF signing are effectively public knowledge.
@@ -134,11 +155,17 @@ STORAGES = {
     'staticfiles': {
         'BACKEND': (
             'whitenoise.storage.CompressedManifestStaticFilesStorage'
-            if not DEBUG else
+            if not DEBUG and not ON_VERCEL else
             'django.contrib.staticfiles.storage.StaticFilesStorage'
         ),
     },
 }
+
+# On Vercel there's no collectstatic step to build the manifest, so WhiteNoise
+# serves files straight from STATICFILES_DIRS and each app's static/ folder.
+# Filenames aren't hashed then, so WhiteNoise caches them for 60 seconds
+# rather than forever -- fine for one stylesheet and a favicon.
+WHITENOISE_USE_FINDERS = ON_VERCEL
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -157,6 +184,16 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
 }
+if ON_VERCEL:
+    # Vercel runs many short-lived instances that share no memory, so a
+    # LocMemCache rate limit would barely limit anything. A table in the
+    # database is shared by all of them. Created by `manage.py vercel_build`.
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache',
+        }
+    }
 
 # django-ratelimit's key='ip' would otherwise read REMOTE_ADDR, which behind
 # any reverse proxy (Railway included) is the proxy's own IP — collapsing
@@ -249,6 +286,10 @@ if not DEBUG:
 
     # Domains allowed to POST to us, e.g. https://edulearn.example.com
     CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
+    if ON_VERCEL:
+        CSRF_TRUSTED_ORIGINS = [
+            *CSRF_TRUSTED_ORIGINS, *(f'https://{host}' for host in VERCEL_HOSTS)
+        ]
 
 # ─── Logging ───────────────────────────────────────────────────────────────────
 # Console always; rotating log files only outside DEBUG, so a local dev

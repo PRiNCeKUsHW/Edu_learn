@@ -17,6 +17,37 @@ CI/CD configuration** in this repo. Deployment is whatever the hosting
 platform does with `Procfile` + `requirements.txt` — there is no automated
 pipeline to describe beyond that.
 
+## Vercel + Neon (current production)
+
+Production runs on **Vercel** with a **Neon** PostgreSQL database. Vercel
+detects Django from `manage.py` and loads `elearn_project.wsgi.application`
+as a serverless function; everything Vercel-specific is gated behind
+`ON_VERCEL` in `settings.py` (Vercel sets `VERCEL=1`), so local development
+and the `Procfile` deploy described below behave exactly as before.
+
+- **Build:** `vercel.json` runs `python manage.py vercel_build`
+  (`core/management/commands/vercel_build.py`). On production builds only
+  it runs `migrate` and `createcachetable`; preview builds skip the
+  database so an unmerged branch can never migrate the live data. A
+  production build with no `DATABASE_URL` fails instead of silently
+  migrating SQLite.
+- **Static files:** no `collectstatic`. WhiteNoise serves straight from the
+  static source folders (`WHITENOISE_USE_FINDERS`).
+- **Rate limiting:** uses a `DatabaseCache` table (`django_cache`) because
+  Vercel's instances share no memory. The client IP still comes from
+  `X-Real-IP`, which Vercel sets.
+- **Hosts:** this project's own Vercel URLs (`VERCEL_PROJECT_PRODUCTION_URL`, `VERCEL_URL`, `VERCEL_BRANCH_URL`) are added to `ALLOWED_HOSTS` and
+  `CSRF_TRUSTED_ORIGINS` automatically -- never all of `*.vercel.app`; add a custom domain to both env vars.
+- **Python:** `.python-version` pins 3.12.
+- **Uploads don't persist:** the function filesystem is read-only, so admin
+  uploads (lesson notes, class thumbnails) need external storage before
+  they can work on Vercel.
+- **Env vars to set in Vercel:** `DEBUG=False`, `SECRET_KEY`, `DATABASE_URL`
+  (Neon, direct — not the `-pooler` host), and for Google sign-in
+  `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
+  `GOOGLE_OAUTH_REDIRECT_URI` (`https://<domain>/accounts/google/callback/`,
+  also registered in Google Cloud Console).
+
 ## Production Architecture
 
 ```
