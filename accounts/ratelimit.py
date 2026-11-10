@@ -63,10 +63,9 @@ def rate_limited_admin_login(login_view):
     )
     def limited_login(request, *args, **kwargs):
         if getattr(request, 'limited', False):
-            logger.warning(
-                'Admin login rate limit hit from %s (username attempted: %r)',
-                get_client_ip(request), request.POST.get('username'),
-            )
+            # The typed username is deliberately not logged: it is free text
+            # of any length, and people do paste a password into that box.
+            logger.warning('Admin login rate limit hit from %s', get_client_ip(request))
             return HttpResponse(
                 'Too many login attempts. Please wait a minute and try again.',
                 status=429, content_type='text/plain',
