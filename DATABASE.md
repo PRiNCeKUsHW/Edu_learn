@@ -10,8 +10,9 @@ database enforces.
 - **Local/default:** SQLite (`db.sqlite3` in the project root, zero config).
 - **Production-capable:** PostgreSQL, selected automatically when the
   `DATABASE_URL` env var is set (parsed by `dj-database-url`, driver
-  `psycopg[binary]`). Connection pooling: `conn_max_age=600`,
-  `conn_health_checks=True`. TLS via `DATABASE_SSL_REQUIRE`.
+  `psycopg[binary]`). Persistent connections: `conn_max_age=600`
+  (`0` on Vercel, where `DATABASE_URL` should be the provider's pooled host;
+  override with `DATABASE_CONN_MAX_AGE`), `conn_health_checks=True`. TLS via `DATABASE_SSL_REQUIRE`.
 - Every model uses plain Django ORM with no backend-specific SQL, so the
   same migrations apply cleanly to either backend. See README.md's
   "Migrating to PostgreSQL" section for the operational steps

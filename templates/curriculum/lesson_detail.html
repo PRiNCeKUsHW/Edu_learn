@@ -96,7 +96,7 @@
       <section aria-labelledby="commentsHeading">
         <h2 id="commentsHeading" class="t-h2" style="margin-bottom: var(--space-4)">
           Doubts &amp; comments
-          <span class="chip" style="margin-left: 0.35rem; vertical-align: middle">{{ comments|length }}</span>
+          <span class="chip" style="margin-left: 0.35rem; vertical-align: middle">{{ comments.paginator.count }}</span>
         </h2>
 
         <form method="post" style="margin-bottom: var(--space-6)">
@@ -105,7 +105,7 @@
             <span class="avatar" aria-hidden="true">{{ user.first_name|default:user.username|slice:":1"|upper }}</span>
             <div class="flex-grow-1">
               <label class="sr-only" for="newComment">Your comment</label>
-              <textarea class="input" id="newComment" name="comment_body" rows="3" placeholder="Stuck on a step? Ask your doubt here…" required></textarea>
+              <textarea class="input" id="newComment" name="comment_body" rows="3" placeholder="Stuck on a step? Ask your doubt here…" maxlength="{{ comment_form.fields.body.max_length }}" required></textarea>
               <div class="d-flex justify-content-end" style="margin-top: var(--space-2)">
                 <button class="btn btn-accent btn-sm-q" type="submit">
                   <i class="bi bi-send" aria-hidden="true"></i>Post
@@ -146,7 +146,7 @@
               <input type="hidden" name="parent_id" value="{{ comment.id }}" />
               <div class="d-flex gap-2">
                 <label class="sr-only" for="reply{{ comment.id }}">Reply to {{ comment.user.get_full_name|default:comment.user.username }}</label>
-                <input class="input" id="reply{{ comment.id }}" type="text" name="comment_body" placeholder="Write a reply…" required style="min-height: 40px; font-size: 0.9rem" />
+                <input class="input" id="reply{{ comment.id }}" type="text" name="comment_body" placeholder="Write a reply…" maxlength="{{ comment_form.fields.body.max_length }}" required style="min-height: 40px; font-size: 0.9rem" />
                 <button class="btn btn-quiet btn-sm-q flex-shrink-0" type="submit">Reply</button>
               </div>
             </form>
@@ -160,6 +160,7 @@
           <div class="t-meta" style="margin-top: 0.25rem">If a step didn't make sense, ask. Someone else is probably wondering too.</div>
         </div>
         {% endfor %}
+        {% include 'curriculum/_pager.html' with page_obj=comments param_name='cpage' pager_query='' %}
       </section>
 
     </div>

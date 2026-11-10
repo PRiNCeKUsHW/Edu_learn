@@ -18,6 +18,8 @@ from .selectors import attach_positions
 
 logger = logging.getLogger(__name__)
 
+COMMENTS_PER_PAGE = 20
+
 
 @login_required
 def subject_list(request, class_slug):
@@ -134,7 +136,18 @@ def lesson_detail(request, class_slug, subject_slug, chapter_slug, lesson_slug):
     # extracting it would change the form's POST target and add behavioral
     # risk for no real gain, since a comment always redirects back to this
     # same lesson page either way.
-    comments = lesson.comments.filter(parent=None).prefetch_related('replies__user')
+    #
+    # Newest thread first, one page at a time: a popular lesson's doubts are
+    # otherwise all loaded on every view. select_related('user') covers the
+    # author of each top-level comment (the prefetch only covers replies'),
+    # which was one extra query per comment.
+    comments = Paginator(
+        lesson.comments.filter(parent=None)
+        .select_related('user')
+        .prefetch_related('replies__user')
+        .order_by('-created_at', '-id'),
+        COMMENTS_PER_PAGE,
+    ).get_page(request.GET.get('cpage'))
     comment_form = CommentForm()
 
     if request.method == 'POST' and 'comment_body' in request.POST:
@@ -160,7 +173,13 @@ def lesson_detail(request, class_slug, subject_slug, chapter_slug, lesson_slug):
                 )
             comment.save()
             messages.success(request, 'Comment posted!')
-            return redirect(request.path)
+            # A reply stays on the page of the thread it was added to; a new
+            # thread goes to page one, where newest-first puts it.
+            return redirect(request.get_full_path() if parent_id else request.path)
+        # The template draws its own textarea rather than the form's, so a
+        # rejected comment has to be explained here or it vanishes silently.
+        for error in comment_form.errors.get('body', []):
+            messages.error(request, error)
 
     all_lessons = list(chapter.lessons.all())
     current_idx = next((i for i, l in enumerate(all_lessons) if l.id == lesson.id), 0)

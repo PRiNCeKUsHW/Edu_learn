@@ -3,6 +3,15 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from accounts.ratelimit import rate_limited_admin_login
+
+# Django's own admin login takes a username and password with no attempt
+# limit, and it is where /panel/ sends anyone who isn't signed in as staff --
+# so without this, LOGIN_RATE_LIMIT on /login/ could be sidestepped by
+# guessing staff passwords here instead. Replaced on the site object before
+# admin.site.urls is read below, which is what picks it up.
+admin.site.login = rate_limited_admin_login(admin.site.login)
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('accounts.urls')),

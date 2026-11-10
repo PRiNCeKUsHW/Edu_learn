@@ -42,8 +42,16 @@ and the `Procfile` deploy described below behave exactly as before.
 - **Uploads don't persist:** the function filesystem is read-only, so admin
   uploads (lesson notes, class thumbnails) need external storage before
   they can work on Vercel.
+- **Database connections:** on Vercel each request opens and closes its
+  own connection (`conn_max_age` defaults to `0` there, `600` elsewhere;
+  override with `DATABASE_CONN_MAX_AGE`) and server-side cursors are off, so
+  `DATABASE_URL` should be Neon's **pooled** (`-pooler`) host. A direct
+  connection held open per serverless instance runs the database out of
+  connections under a traffic burst.
+- **Debug mode is refused:** the app will not start on Vercel with
+  `DEBUG=True`, and `DEBUG` now defaults to `False` everywhere.
 - **Env vars to set in Vercel:** `DEBUG=False`, `SECRET_KEY`, `DATABASE_URL`
-  (Neon, direct — not the `-pooler` host), and for Google sign-in
+  (Neon, the pooled `-pooler` host), and for Google sign-in
   `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
   `GOOGLE_OAUTH_REDIRECT_URI` (`https://<domain>/accounts/google/callback/`,
   also registered in Google Cloud Console).
@@ -98,7 +106,7 @@ table and what each one does. At minimum for a production boot:
 - `SECRET_KEY` — must be a real generated value; the app **refuses to
   start** if `DEBUG=False` and this is still the `django-insecure-...`
   placeholder.
-- `DEBUG=False`
+- `DEBUG=False` (also the default when the variable is missing)
 - `ALLOWED_HOSTS` — the real domain(s), comma-separated.
 - `DATABASE_URL` — if using PostgreSQL (recommended).
 - `CSRF_TRUSTED_ORIGINS` — the real `https://...` origin(s) that will POST

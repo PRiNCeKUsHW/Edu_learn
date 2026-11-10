@@ -10,7 +10,10 @@ from .logging_config import ensure_log_dir
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-fallback-key-change-in-production')
-DEBUG = config('DEBUG', default=True, cast=bool)
+# Off unless explicitly switched on. A host where the variable was simply
+# forgotten must come up locked down, not showing debug pages; local
+# development sets DEBUG=True in .env.
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Env-driven so deploying to a real domain is a config change, not a code change.
 # Add your domain to ALLOWED_HOSTS in .env, comma separated.
@@ -39,6 +42,15 @@ VERCEL_HOSTS = [
 ]
 if ON_VERCEL:
     ALLOWED_HOSTS = [*ALLOWED_HOSTS, *VERCEL_HOSTS]
+
+# A public deployment must never run in debug mode: the error pages print
+# settings and source, and every `if not DEBUG` hardening block below
+# (secure cookies, HTTPS redirect, HSTS) would be skipped.
+if ON_VERCEL and DEBUG:
+    raise ImproperlyConfigured(
+        'DEBUG is on in a Vercel deployment. Set DEBUG=False in Vercel -> '
+        'Project -> Settings -> Environment Variables, then redeploy.'
+    )
 
 # Refuse to boot in production on the placeholder key — otherwise session and
 # CSRF signing are effectively public knowledge.
@@ -115,11 +127,26 @@ if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.parse(
             DATABASE_URL,
-            conn_max_age=600,  # persistent connections; avoid a new TCP+auth handshake every request
+            # On a long-running host (gunicorn) a worker keeps its connection
+            # for 10 minutes, saving a TCP+auth handshake per request. On
+            # Vercel that same setting makes every serverless instance sit
+            # on a connection of its own, and a traffic burst exhausts the
+            # database's connection limit -- so there each request opens and
+            # closes its own, and DATABASE_URL should point at the provider's
+            # pooled host (Neon: the `-pooler` hostname), which makes that
+            # cheap.
+            conn_max_age=config(
+                'DATABASE_CONN_MAX_AGE', default=0 if ON_VERCEL else 600, cast=int
+            ),
             conn_health_checks=True,
             ssl_require=config('DATABASE_SSL_REQUIRE', default=False, cast=bool),
         )
     }
+    if ON_VERCEL:
+        # A transaction-mode pooler (PgBouncer, which Neon's pooled host is)
+        # hands each transaction to whichever server connection is free, so
+        # a server-side cursor opened in one can't be read from the next.
+        DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
 else:
     DATABASES = {
         'default': {
@@ -249,7 +276,10 @@ GOOGLE_OAUTH_CONFIGURED = bool(
 # Hard ceilings independent of the per-field validators in curriculum.models, so an
 # oversized request is rejected before it is buffered to disk.
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024      # 5 MB kept in memory
-DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024     # 30 MB total request body
+# Caps the non-file part of a request body (form fields); uploaded files are
+# not counted against it, so the 25 MB resource limit is unaffected. Was
+# 30 MB, which let any logged-in student post a 30 MB "comment".
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(2.5 * 1024 * 1024)
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 
 # ─── Security ──────────────────────────────────────────────────────────────────

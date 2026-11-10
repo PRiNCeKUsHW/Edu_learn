@@ -30,9 +30,10 @@ defaults already exists in a fresh checkout. Variables (see
 [SECURITY.md](SECURITY.md#secrets--environment-variables) for what each
 does):
 
-- `SECRET_KEY`, `DEBUG` — always set for local dev; the placeholder
-  `SECRET_KEY` is fine as long as `DEBUG=True` (the app refuses to boot with
-  the placeholder once `DEBUG=False`).
+- `SECRET_KEY`, `DEBUG` — always set for local dev. `DEBUG` defaults to
+  `False` when missing, so `.env` must contain `DEBUG=True`; the placeholder
+  `SECRET_KEY` is fine as long as it does (the app refuses to boot with the
+  placeholder once `DEBUG=False`).
 - `GOOGLE_OAUTH_CLIENT_ID` / `_CLIENT_SECRET` / `_REDIRECT_URI` — optional;
   leave unset to develop without Google sign-in (the button just won't
   appear). See README.md's "Google Sign-In setup" for how to obtain real

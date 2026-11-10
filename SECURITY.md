@@ -155,7 +155,7 @@ Three tiers, checked per-view (no general permissions/roles framework):
 - `Class.thumbnail`: separate `FileExtensionValidator` restricted to
   `png, jpg, jpeg, webp` only.
 - Project-wide hard ceilings independent of the per-field validators:
-  `FILE_UPLOAD_MAX_MEMORY_SIZE = 5MB`, `DATA_UPLOAD_MAX_MEMORY_SIZE = 30MB`,
+  `FILE_UPLOAD_MAX_MEMORY_SIZE = 5MB`, `DATA_UPLOAD_MAX_MEMORY_SIZE = 2.5MB` (form fields only; files are not counted),
   `DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000` — an oversized request is rejected
   before it's buffered to disk at all.
 - Uploads are only reachable through `admin_panel`/Django Admin, i.e.

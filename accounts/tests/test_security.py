@@ -1,7 +1,10 @@
 """Security-boundary test: the open-redirect fix on login's `next` param."""
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
+from freezegun import freeze_time
 
 
 class LoginRedirectSecurityTests(TestCase):
@@ -31,3 +34,27 @@ class LoginRedirectSecurityTests(TestCase):
         response = self.client.post(url, {'username': 'student', 'password': 'pass12345'})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, target)
+
+
+class AdminLoginRateLimitTests(TestCase):
+    """/admin/login/ is a second password door (and where /panel/ redirects
+    anonymous visitors), so it carries the same attempt limit as /login/."""
+
+    def setUp(self):
+        cache.clear()
+        self.url = reverse('admin:login')
+
+    @freeze_time('2026-01-01 12:00:00')
+    def test_post_is_blocked_after_the_login_rate_limit(self):
+        limit = int(settings.LOGIN_RATE_LIMIT.split('/')[0])
+        for _ in range(limit):
+            response = self.client.post(self.url, {'username': 'nobody', 'password': 'wrong'})
+            self.assertEqual(response.status_code, 200)
+        response = self.client.post(self.url, {'username': 'nobody', 'password': 'wrong'})
+        self.assertEqual(response.status_code, 429)
+
+    @freeze_time('2026-01-01 12:00:00')
+    def test_opening_the_page_is_never_limited(self):
+        limit = int(settings.LOGIN_RATE_LIMIT.split('/')[0])
+        for _ in range(limit + 5):
+            self.assertEqual(self.client.get(self.url).status_code, 200)

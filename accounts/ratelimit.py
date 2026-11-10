@@ -36,3 +36,41 @@ def get_client_ip(request):
     if real_ip:
         return real_ip.strip()
     return request.META.get('REMOTE_ADDR', '')
+
+
+def rate_limited_admin_login(login_view):
+    """Wraps Django admin's login view with the same per-IP attempt limit as
+    the site's own login page (settings.LOGIN_RATE_LIMIT), counted in its own
+    bucket. Only POSTs count, so opening the page is never limited.
+
+    Applied in elearn_project/urls.py. A plain-text 429 rather than a styled
+    page: only staff ever reach this screen, and only by hammering it.
+    """
+    # Imported here, not at module top: settings.py names this module in
+    # RATELIMIT_IP_META_KEY, and get_client_ip above must stay importable
+    # without pulling in anything that itself reads settings at import time.
+    import logging
+
+    from django.conf import settings
+    from django.http import HttpResponse
+    from django_ratelimit.decorators import ratelimit
+
+    logger = logging.getLogger(__name__)
+
+    @ratelimit(
+        key='ip', rate=settings.LOGIN_RATE_LIMIT, method='POST',
+        group='admin_login', block=False,
+    )
+    def limited_login(request, *args, **kwargs):
+        if getattr(request, 'limited', False):
+            logger.warning(
+                'Admin login rate limit hit from %s (username attempted: %r)',
+                get_client_ip(request), request.POST.get('username'),
+            )
+            return HttpResponse(
+                'Too many login attempts. Please wait a minute and try again.',
+                status=429, content_type='text/plain',
+            )
+        return login_view(request, *args, **kwargs)
+
+    return limited_login
