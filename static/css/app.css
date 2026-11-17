@@ -2043,3 +2043,45 @@ textarea.input {
 [hidden] {
   display: none !important;
 }
+
+/* ─── Drifting maths symbols (templates/core/_math_bg.html) ─────────────── */
+.math-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.math-bg span {
+  position: absolute;
+  left: var(--x);
+  bottom: -3rem;
+  font-family: var(--font-display, inherit);
+  font-size: var(--s);
+  font-weight: 600;
+  color: var(--accent);
+  opacity: 0;
+  white-space: nowrap;
+  animation: math-drift var(--d) linear var(--delay) infinite;
+  will-change: transform, opacity;
+}
+@keyframes math-drift {
+  0%   { transform: translateY(0) rotate(0deg);         opacity: 0; }
+  10%  { opacity: 0.14; }
+  85%  { opacity: 0.14; }
+  100% { transform: translateY(-115vh) rotate(25deg);   opacity: 0; }
+}
+/* Keep real content above the symbols. */
+main,
+.site-footer {
+  position: relative;
+  z-index: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .math-bg span {
+    animation: none;
+    opacity: 0.08;
+    bottom: auto;
+    top: calc(var(--x) * 0.9);
+  }
+}
