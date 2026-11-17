@@ -88,6 +88,8 @@
           {% endif %}
         </ul>
 
+        {% include 'partials/learner_count.html' %}
+
         <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch colour theme">
           <i class="bi bi-moon-stars" aria-hidden="true"></i>
           <i class="bi bi-sun" aria-hidden="true"></i>
@@ -127,6 +129,7 @@
             <a class="nav-link-q" href="{% url 'login' %}" {% if request.resolver_match.url_name == 'login' %}aria-current="page"{% endif %}>Log in</a>
           </li>
         </ul>
+        {% include 'partials/learner_count.html' %}
         <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch colour theme">
           <i class="bi bi-moon-stars" aria-hidden="true"></i>
           <i class="bi bi-sun" aria-hidden="true"></i>

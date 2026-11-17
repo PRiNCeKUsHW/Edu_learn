@@ -1,0 +1,6 @@
+{# Registered learners (staff/admins excluded) — see core.context_processors.learner_count #}
+<span class="nav-stat d-none d-sm-inline-flex" title="Registered learners">
+  <i class="bi bi-people-fill" aria-hidden="true"></i>
+  <strong>{{ LEARNER_COUNT }}</strong>
+  <span class="nav-stat-label">learner{{ LEARNER_COUNT|pluralize }}</span>
+</span>
