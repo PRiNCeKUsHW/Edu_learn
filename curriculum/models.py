@@ -177,17 +177,6 @@ class Chapter(models.Model):
     slug = models.SlugField(max_length=100)
     order = models.PositiveIntegerField(default=1)
     description = models.TextField(blank=True)
-    youtube_playlist_id = models.CharField(
-        max_length=64,
-        blank=True,
-        # Interpolated into the YouTube watch URL, so keep it to the
-        # character set YouTube playlist IDs actually use.
-        validators=[RegexValidator(
-            regex=r'^[A-Za-z0-9_-]{10,64}$',
-            message='Enter a YouTube playlist link or its ID (the part after "list=").',
-        )],
-        help_text="Optional. This chapter's YouTube playlist; lessons open on YouTube inside it.",
-    )
 
     class Meta:
         ordering = ['order']
@@ -232,15 +221,6 @@ class Lesson(models.Model):
     @property
     def youtube_embed_url(self):
         return f'https://www.youtube.com/embed/{self.youtube_video_id}'
-
-    @property
-    def youtube_watch_url(self):
-        """The lesson on youtube.com, played inside its chapter's playlist
-        when the chapter has one (so YouTube autoplays the next lesson)."""
-        url = f'https://www.youtube.com/watch?v={self.youtube_video_id}'
-        if self.chapter.youtube_playlist_id:
-            url += f'&list={self.chapter.youtube_playlist_id}'
-        return url
 
     @property
     def youtube_thumbnail_url(self):

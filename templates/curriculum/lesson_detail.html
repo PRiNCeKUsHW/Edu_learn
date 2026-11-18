@@ -18,16 +18,14 @@
     <!-- ════════════════ MAIN ════════════════ -->
     <div class="col-lg-8">
 
-      <!-- ── Player: opens the lesson on YouTube (inside the chapter's playlist, if set) ── -->
+      <!-- ── Player ── -->
       <div class="player-frame" style="margin-bottom: var(--space-4)">
-        <a class="video-wrapper yt-launch" href="{{ lesson.youtube_watch_url }}" target="_blank" rel="noopener">
-          <img src="https://i.ytimg.com/vi/{{ lesson.youtube_video_id }}/hqdefault.jpg" alt="" loading="eager" />
-          <span class="yt-launch-play" aria-hidden="true"><i class="bi bi-play-fill"></i></span>
-          <span class="yt-launch-label">
-            <i class="bi bi-youtube" aria-hidden="true"></i>
-            Watch on YouTube<span class="sr-only">: {{ lesson.title }} (opens in a new tab)</span>
-          </span>
-        </a>
+        <div class="video-wrapper">
+          <iframe src="https://www.youtube-nocookie.com/embed/{{ lesson.youtube_video_id }}?rel=0&amp;playsinline=1&amp;modestbranding=1"
+                  title="{{ lesson.title }} — video lesson"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
       </div>
 
       <!-- ── Title + actions ── -->
@@ -48,7 +46,7 @@
           <i id="watchIcon" class="bi {% if progress.watched %}bi-check-circle-fill{% else %}bi-circle{% endif %}" aria-hidden="true"></i>
           <span id="watchText">{% if progress.watched %}Watched{% else %}Mark watched{% endif %}</span>
         </button>
-        <a class="btn btn-ghost" href="{{ lesson.youtube_watch_url }}" target="_blank" rel="noopener">
+        <a class="btn btn-ghost" href="https://www.youtube.com/watch?v={{ lesson.youtube_video_id }}" target="_blank" rel="noopener">
           <i class="bi bi-youtube" style="color: #ff2d2d" aria-hidden="true"></i>Open on YouTube<span class="sr-only"> (opens in a new tab)</span>
         </a>
       </div>

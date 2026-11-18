@@ -1,5 +1,3 @@
-from urllib.parse import parse_qs, urlparse
-
 from django import forms
 from django.utils.text import slugify
 
@@ -100,39 +98,14 @@ class ChapterForm(SlugFromNameMixin, StyledFormMixin, forms.ModelForm):
     slug = forms.SlugField(required=False)
     slug_source = 'title'
     slug_fallback = 'chapter'
-    # Longer than the model's 64 so a full watch/playlist link can be pasted;
-    # clean_youtube_playlist_id() reduces it to the ID, which the model's own
-    # validator then checks.
-    youtube_playlist_id = forms.CharField(
-        max_length=500, required=False, label='YouTube playlist',
-        help_text=(
-            'Optional. Paste the playlist link, e.g. '
-            'https://www.youtube.com/playlist?list=PLxxxx. Lessons in this '
-            'chapter then open on YouTube inside that playlist.'
-        ),
-    )
 
     class Meta:
         model = Chapter
-        fields = ('subject', 'title', 'slug', 'order', 'description', 'youtube_playlist_id')
+        fields = ('subject', 'title', 'slug', 'order', 'description')
         help_texts = {
             'slug': 'Auto-filled from title if left blank.',
             'order': 'Display order within the subject.',
         }
-
-    def clean_youtube_playlist_id(self):
-        """Accept a full playlist (or watch) link as well as a bare ID, and
-        store just the ID. The model's validator then checks the result."""
-        value = (self.cleaned_data.get('youtube_playlist_id') or '').strip()
-        if '://' in value or 'list=' in value:
-            query = parse_qs(urlparse(value if '://' in value else f'https://x/?{value}').query)
-            value = (query.get('list') or [''])[0]
-            if not value:
-                raise forms.ValidationError(
-                    'That link has no playlist in it. Open the playlist on YouTube '
-                    'and copy the link that contains "list=".'
-                )
-        return value
 
 
 class LessonForm(SlugFromNameMixin, StyledFormMixin, forms.ModelForm):

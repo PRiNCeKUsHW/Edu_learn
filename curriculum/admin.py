@@ -48,7 +48,7 @@ class ResourceInline(admin.TabularInline):
 
 @admin.register(Chapter)
 class ChapterAdmin(admin.ModelAdmin):
-    list_display = ('title', 'subject', 'order', 'youtube_playlist_id')
+    list_display = ('title', 'subject', 'order')
     list_filter = ('subject__klass', 'subject')
     prepopulated_fields = {'slug': ('title',)}
     inlines = [LessonInline]

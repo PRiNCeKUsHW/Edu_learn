@@ -157,48 +157,6 @@ class ChapterSlugAutofillTests(TestCase):
         self.assertRedirects(response, reverse('ap:chapter_list'))
         self.assertEqual(Chapter.objects.get(title='Whole Numbers').slug, 'wn')
 
-
-class ChapterPlaylistFieldTests(TestCase):
-    """Staff can paste a whole YouTube link into the chapter's playlist field;
-    only the playlist ID is stored."""
-
-    def setUp(self):
-        self.client.force_login(User.objects.create_user('staff', password='x', is_staff=True))
-        self.subject = Subject.objects.create(
-            klass=Class.objects.create(name='Class 9', slug='class-9'), name='Maths', slug='maths',
-        )
-
-    def post(self, playlist):
-        return self.client.post(reverse('ap:chapter_add'), {
-            'subject': self.subject.pk, 'title': 'Quadrilaterals', 'slug': '',
-            'order': 1, 'description': '', 'youtube_playlist_id': playlist,
-        })
-
-    def test_playlist_link_is_stored_as_just_the_id(self):
-        for value in (
-            'https://www.youtube.com/playlist?list=PLabcdefghij1234567890',
-            'https://www.youtube.com/watch?v=abc123XYZ_-&list=PLabcdefghij1234567890&index=2',
-            'PLabcdefghij1234567890',
-        ):
-            with self.subTest(value=value):
-                Chapter.objects.all().delete()
-                self.assertRedirects(self.post(value), reverse('ap:chapter_list'))
-                self.assertEqual(Chapter.objects.get().youtube_playlist_id, 'PLabcdefghij1234567890')
-
-    def test_playlist_is_optional(self):
-        self.assertRedirects(self.post(''), reverse('ap:chapter_list'))
-        self.assertEqual(Chapter.objects.get().youtube_playlist_id, '')
-
-    def test_link_without_a_playlist_is_rejected(self):
-        response = self.post('https://www.youtube.com/watch?v=abc123XYZ_-')
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(Chapter.objects.exists())
-
-    def test_junk_value_is_rejected(self):
-        response = self.post('not a playlist <script>')
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(Chapter.objects.exists())
-
     def test_colliding_auto_generated_slug_on_create_is_a_form_error_not_a_crash(self):
         Chapter.objects.create(
             subject=self.subject, title='Introduction', slug='introduction', order=1,
